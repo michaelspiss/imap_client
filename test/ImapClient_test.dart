@@ -3,14 +3,14 @@ import 'package:test/test.dart';
 
 void main() {
   group('A group of tests', () {
-    Awesome awesome;
+    ImapClient client;
 
     setUp(() {
-      awesome = new Awesome();
+      client = new ImapClient();
     });
 
     test('First Test', () {
-      expect(awesome.isAwesome, isTrue);
+      //expect(awesome.isAwesome, isTrue);
     });
   });
 }

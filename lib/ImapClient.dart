@@ -1,8 +1,7 @@
-/// Support for doing something awesome.
-///
-/// More dartdocs go here.
 library ImapClient;
 
-export 'src/ImapClient_base.dart';
+import 'dart:io';
+import 'dart:async';
 
-// TODO: Export any libraries intended for clients of this package.
+part 'src/ImapConnection.dart';
+part 'src/ImapClient.dart';
