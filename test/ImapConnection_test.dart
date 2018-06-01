@@ -33,13 +33,13 @@ void main() {
   });
 
   test('sendCommand throws SocketException if the connection is not open', () {
-    expect(() => connection.sendCommand('', '', ''), throwsException);
+    expect(() => connection.writeln(), throwsException);
   });
 
   test('sendCommand writes to the server if the connection is open', () async {
     int called = 0;
     await connection.connect('imap.gmail.com', 993, true, (_) { called++; });
-    connection.sendCommand('0', 'CAPABILITY');
+    connection.writeln('0 CAPABILITY');
     // wait a second to make sure the command was able to send
     new Future.delayed(const Duration(seconds: 1), () {
       expect(called, 2);

@@ -32,15 +32,14 @@ class ImapConnection {
     });
   }
 
-  /// Sends a command to the server
+  /// Writes a line to the socket
   ///
-  /// Each [command] to the server needs a unique [tag]. There can be zero to
-  /// unlimited [parameters]. Throws a [SocketException] if the connection is
-  /// not open.
-  void sendCommand(String tag, String command, [String parameters = '']) {
+  /// Converts [obj] to a String by invoking Object.toString().
+  /// Throws a [SocketException] if the connection is not open.
+  void writeln([Object obj = ""]) {
     if(_isOpen) {
-      // MUST end with CRLF [RFC3501], trim removes space if no parameters given
-      _connection.write('$tag $command $parameters'.trim() + '\r\n');
+      // MUST end with CRLF [RFC3501], a simple writeln() does not satisfy that
+      _connection.write(obj.toString() + '\r\n');
     } else {
       throw new SocketException('Socket is closed.');
     }
