@@ -18,6 +18,9 @@ class ImapClient {
   /// Statuses are "complete" and "continue", new MapEntry(tag, status)
   StreamController<MapEntry<String, String>> _responseStates;
 
+  /// Contains all supported authentication methods
+  Map<String, Function> _authMethods = new Map();
+
   /// The matcher looking for tagged responses.
   // TODO: It's currently possible that this matches something in a message's body. The current workaround is appending a timestamp to the tag.
   RegExp _tagMatcher = new RegExp("^(A[0-9]+)\\s(BAD|NO|OK)", multiLine: true);
@@ -28,6 +31,8 @@ class ImapClient {
   ImapClient() {
     _connection = new ImapConnection();
     _responseStates = new StreamController.broadcast();
+    setAuthMethod("plain", _authPlain);
+    setAuthMethod("login", _authLogin);
   }
 
   /// Connects to [host] in [port], uses SSL and TSL if [secure] is true
@@ -55,6 +60,18 @@ class ImapClient {
       String tag = _registeredTags.first;
       _responseStates.add(new MapEntry(tag, 'continue'));
     }
+  }
+
+  /// Checks if an authentication method is supported. Capitalization is ignored
+  bool supportsAuth(String methodName) {
+    return _authMethods.containsKey(methodName.toLowerCase());
+  }
+
+  /// Registers an authentication method handler. Capitalization is ignored.
+  ///
+  /// This method may overwrite existing handlers with the same name.
+  void setAuthMethod(String methodName, Function handler) {
+    _authMethods[methodName.toLowerCase()] = handler;
   }
 
   /// Generates a new unique tag
@@ -133,4 +150,21 @@ class ImapClient {
     return sendCommand('LOGOUT');
   }
 
+  /// Sends the AUTHENTICATE command as defined in RFC 3501
+  Future<List<String>> authenticate(String username, String password,
+      [String authMethod = "plain"]) {
+    authMethod = authMethod.toLowerCase();
+    var bytes_username = utf8.encode(username);
+    var bytes_password = utf8.encode(password);
+    IterationWrapper iteration = new IterationWrapper();
+
+    if(!supportsAuth(authMethod)) {
+      return null; // TODO: Return error response/throw exception?
+    }
+
+    return sendCommand('AUTHENTICATE $authMethod', () {
+      _authMethods[authMethod](
+          _connection, bytes_username, bytes_password, iteration);
+    });
+  }
 }
