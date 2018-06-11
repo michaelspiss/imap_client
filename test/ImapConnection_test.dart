@@ -1,4 +1,4 @@
-import 'package:ImapClient/ImapClient.dart';
+import 'package:ImapClient/imap_client.dart';
 import 'package:test/test.dart';
 import 'dart:async';
 
