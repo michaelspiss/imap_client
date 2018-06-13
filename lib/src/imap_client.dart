@@ -173,7 +173,9 @@ class ImapClient {
 
     tag = _prepareTag(tag);
     var completer = _prepareResponseStateListener(tag, onContinue);
-    _connection.writeln('$tag $command');
+    String uid = _commandUseUid ? "UID " : "";
+    _commandUseUid = false;
+    _connection.writeln('$tag $uid$command');
     return completer.future;
   }
 
@@ -259,5 +261,121 @@ class ImapClient {
   /// Sends the LOGIN command as defined in RFC 3501
   Future<List<String>> login(String username, String password) {
     return sendCommand('LOGIN "$username" "$password"');
+  }
+
+  /*
+  Commands - Authenticated state only
+   */
+
+  /// Sends the SELECT command as defined in RFC 3501
+  Future<List<String>> select(String mailbox) {
+    return sendCommand('SELECT "$mailbox"');
+  }
+
+  /// Sends the EXAMINE command as defined in RFC 3501
+  Future<List<String>> examine(String mailbox) {
+    return sendCommand('EXAMINE "$mailbox"');
+  }
+
+  /// Sends the CREATE command as defined in RFC 3501
+  Future<List<String>> create(String mailbox) {
+    return sendCommand('CREATE "$mailbox"');
+  }
+
+  /// Sends the DELETE command as defined in RFC 3501
+  Future<List<String>> delete(String mailbox) {
+    return sendCommand('DELETE "$mailbox"');
+  }
+
+  /// Sends the RENAME command as defined in RFC 3501
+  Future<List<String>> rename(String mailbox, String newMailboxName) {
+    return sendCommand('RENAME "$mailbox" "$newMailboxName"');
+  }
+
+  /// Sends the SUBSCRIBE command as defined in RFC 3501
+  Future<List<String>> subscribe(String mailbox) {
+    return sendCommand('SUBSCRIBE "$mailbox"');
+  }
+
+  /// Sends the UNSUBSCRIBE command as defined in RFC 3501
+  Future<List<String>> unsubscribe(String mailbox) {
+    return sendCommand('UNSUBSCRIBE "$mailbox"');
+  }
+
+  /// Sends the LIST command as defined in RFC 3501
+  Future<List<String>> list(String referenceName, String mailboxName) {
+    return sendCommand('LIST "$referenceName" "$mailboxName"');
+  }
+
+  /// Sends the LSUB command as defined in RFC 3501
+  Future<List<String>> lsub(String referenceName, String mailboxName) {
+    return sendCommand('LSUB "$referenceName" "$mailboxName"');
+  }
+
+  /// Sends the STATUS command as defined in RFC 3501
+  Future<List<String>> status(String mailbox, List<String> statusDataItems) {
+    String dataItems = _listToImapString(statusDataItems);
+    return sendCommand('STATUS "$mailbox" $dataItems');
+  }
+
+  /// Sends the APPEND command as defined in RFC 3501
+  Future<List<String>> append(String mailbox, String message,
+      [String dateTime = "", List<String> flags]) {
+    dateTime = dateTime.isEmpty ? "" : " " + dateTime;
+    String flagsString = flags == null ? "" : " " + _listToImapString(flags);
+    Utf8Encoder encoder = new Utf8Encoder();
+    List<int> convertedMessage = encoder.convert(message);
+    int length = convertedMessage.length;
+    return sendCommand('APPEND "$mailbox"$flagsString$dateTime {$length}', () {
+      _connection.writeln(message);
+    });
+  }
+
+  /*
+  Commands - Selected state only
+   */
+
+  /// Sends the CHECK command as defined in RFC 3501
+  Future<List<String>> check() {
+    return sendCommand('CHECK');
+  }
+
+  /// Sends the CLOSE command as defined in RFC 3501
+  Future<List<String>> close() {
+    return sendCommand('CLOSE');
+  }
+
+  /// Sends the EXPUNGE command as defined in RFC 3501
+  Future<List<String>> expunge() {
+    return sendCommand('EXPUNGE');
+  }
+
+  /// Sends the SEARCH command as defined in RFC 3501
+  Future<List<String>> search(String searchCriteria, [String charset = ""]) {
+    charset = charset.isEmpty ? "" : "CHARSET " + charset + " ";
+    return sendCommand('SEARCH $charset$searchCriteria');
+  }
+
+  /// Sends the FETCH command as defined in RFC 3501
+  Future<List<String>> fetch(String sequenceSet, List<String> dataItemNames) {
+    String dataItems = _listToImapString(dataItemNames);
+    return sendCommand('FETCH $sequenceSet $dataItems');
+  }
+
+  /// Sends the STORE command as defined in RFC 3501
+  Future<List<String>> store(String sequenceSet, String dataItem,
+      String dataValue) {
+    return sendCommand('STORE $sequenceSet $dataItem $dataValue');
+  }
+
+  /// Sends the COPY command as defined in RFC 3501
+  Future<List<String>> copy(String sequenceSet, String mailbox) {
+    return sendCommand('COPY $sequenceSet $mailbox');
+  }
+
+  /// Sends next command with prepended "UID"
+  ImapClient uid() {
+    _commandUseUid = true;
+    return this;
   }
 }
