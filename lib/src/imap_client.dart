@@ -23,10 +23,10 @@ class ImapClient {
 
   /// The matcher looking for tagged responses.
   // TODO: It's currently possible that this matches something in a message's body. The current workaround is appending a timestamp to the tag.
-  RegExp _tagMatcher = new RegExp("^(A[0-9]+)\\s(BAD|NO|OK)", multiLine: true);
+  RegExp _tagMatcher = new RegExp("^(A[0-9]+) (BAD|NO|OK)(?: (.*))?\$", multiLine: true);
 
   /// The matcher looking for "continue" (+) responses.
-  RegExp _continueMatcher = new RegExp("^\\+", multiLine: true);
+  RegExp _continueMatcher = new RegExp("^\\+(?: (.*))?\$", multiLine: true);
 
   ImapClient() {
     _connection = new ImapConnection();
