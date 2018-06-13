@@ -173,9 +173,12 @@ class ImapClient {
   /// Deprecated by RFC 8314, use a secure connection if possible.
   /// TLS negotiation is not part of this package. It begins *after* command
   /// completion, no further commands must be issued while the negotiation is
-  /// not complete.
+  /// not complete. Returns the [ImapConnection] so a communication with the
+  /// server is possible to implement.
+  /// Again, this method should not be used anymore!
   @deprecated
-  Future<List<String>> starttls() {
-    return sendCommand('STARTTLS');
+  ImapConnection starttls() {
+    sendCommand('STARTTLS');
+    return _connection;
   }
 }
