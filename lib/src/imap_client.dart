@@ -4,6 +4,13 @@ class ImapClient {
 
   ImapConnection _connection;
 
+  /// All possible connection states
+  static const stateClosed = -1;
+  static const stateConnected = 0;
+  static const stateAuthenticated = 1;
+  static const stateSelected = 2;
+  static const stateIdle = 3;
+
   /// Saves all responses in blocks defined by tags
   Map<String, List<String>> _responseBlocks = new Map();
 
@@ -20,6 +27,16 @@ class ImapClient {
 
   /// Contains all supported authentication methods
   Map<String, Function> _authMethods = new Map();
+
+  /// The current connection state
+  int _connectionState = stateClosed;
+  int get connectionState => _connectionState;
+
+  /// Indicates that the response is the initial greeting
+  bool _responseIsGreeting = true;
+
+  /// Indicates that the command issued next should be sent with prepended "UID"
+  bool _commandUseUid = false;
 
   /// The matcher looking for tagged responses.
   // TODO: It's currently possible that this matches something in a message's body. The current workaround is appending a timestamp to the tag.
@@ -40,7 +57,10 @@ class ImapClient {
   /// It's highly recommended to (a)wait for this to finish.
   Future connect(String host, int port, bool secure) {
     var completer = new Completer();
-    _connection.connect(host, port, secure, _responseHandler).then((_) {
+    _connection.connect(host, port, secure, _responseHandler, () {
+      _connectionState = stateClosed;
+    }).then((_) {
+      _responseIsGreeting = true;
       completer.complete();
     });
     return completer.future;
@@ -48,6 +68,32 @@ class ImapClient {
 
   void _responseHandler(response) {
     response = new String.fromCharCodes(response);
+    if(_responseIsGreeting) {
+      _handleGreeting(response);
+    } else {
+      _handleServerResponse(response);
+    }
+  }
+
+  void _handleGreeting(String response) {
+    RegExp matcher = new RegExp('^\\* (BYE|OK|PREAUTH)');
+    Match match = matcher.firstMatch(response);
+    if(match != null) {
+      switch(match.group(1)) {
+        case 'BYE':
+          break;
+        case 'OK':
+          _connectionState = stateConnected;
+          break;
+        case 'PREAUTH':
+          _connectionState = stateAuthenticated;
+          break;
+      }
+      _responseIsGreeting = false;
+    }
+  }
+
+  void _handleServerResponse(String response) {
     _responseBlocks[_registeredTags.first].add(response);
     // Marks corresponding tag as complete if the response is tagged
     Match match = _tagMatcher.firstMatch(response);
@@ -132,6 +178,33 @@ class ImapClient {
   }
 
   /*
+  Helper methods
+   */
+
+  bool isConnected() {
+    return _connectionState >= 0;
+  }
+
+  bool isAuthenticated() {
+    return _connectionState >= 1;
+  }
+
+  bool isSelected() {
+    return _connectionState == 2;
+  }
+
+  bool isIdle() {
+    return _connectionState == 3;
+  }
+
+  /// Converts a regular list to an imap list string
+  String _listToImapString(List<String> list) {
+    String listString = list.toString();
+    return '(' + listString.substring(1, listString.length-1)
+        .replaceAll(',', '') + ')';
+  }
+
+  /*
    * COMMANDS
    */
 
@@ -147,6 +220,7 @@ class ImapClient {
 
   /// Sends the LOGOUT command as defined in RFC 3501
   Future<List<String>> logout() {
+    _connectionState = stateClosed;
     return sendCommand('LOGOUT');
   }
 
@@ -180,5 +254,10 @@ class ImapClient {
   ImapConnection starttls() {
     sendCommand('STARTTLS');
     return _connection;
+  }
+
+  /// Sends the LOGIN command as defined in RFC 3501
+  Future<List<String>> login(String username, String password) {
+    return sendCommand('LOGIN "$username" "$password"');
   }
 }

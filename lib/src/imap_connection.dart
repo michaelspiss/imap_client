@@ -14,9 +14,10 @@ class ImapConnection {
   /// Sets up the socket and connects to the host
   ///
   /// Returns a future that completes when the connection is established and
-  /// calls the [responseHandler] each time the new data arrives.
+  /// calls the [responseHandler] each time the new data arrives. There is an
+  /// option for an [onDoneCallback] that gets called when the socket closes.
   Future<Socket> connect(String host, int port, bool secure,
-      Function responseHandler) {
+      Function responseHandler, [Function onDoneCallback = null]) {
     Future<Socket> futureSocket = secure ? SecureSocket.connect(host, port)
         : Socket.connect(host, port);
 
@@ -26,6 +27,7 @@ class ImapConnection {
       _connection.listen(responseHandler,
         cancelOnError: true,
         onDone: () {
+          onDoneCallback();
           _connection.destroy();
           _isOpen = false;
         });
