@@ -33,17 +33,18 @@ class ImapClient {
   int get connectionState => _connectionState;
 
   /// Indicates that the response is the initial greeting
-  bool _responseIsGreeting = true;
+  bool _isResponseGreeting = true;
 
   /// Indicates that the command issued next should be sent with prepended "UID"
   bool _commandUseUid = false;
 
   /// The matcher looking for tagged responses.
   // TODO: It's currently possible that this matches something in a message's body. The current workaround is appending a timestamp to the tag.
-  RegExp _tagMatcher = new RegExp("^(A[0-9]+) (BAD|NO|OK)(?: (.*))?\$", multiLine: true);
+  RegExp _tagMatcher = new RegExp("^(A[0-9]+) (BAD|NO|OK)(?: (.*))?\r\n\$",
+      caseSensitive: false);
 
   /// The matcher looking for "continue" (+) responses.
-  RegExp _continueMatcher = new RegExp("^\\+(?: (.*))?\$", multiLine: true);
+  RegExp _continueMatcher = new RegExp("^\\+(?: (.*))?\r\n\$");
 
   ImapClient() {
     _connection = new ImapConnection();
@@ -60,7 +61,7 @@ class ImapClient {
     _connection.connect(host, port, secure, _responseHandler, () {
       _connectionState = stateClosed;
     }).then((_) {
-      _responseIsGreeting = true;
+      _isResponseGreeting = true;
       completer.complete();
     });
     return completer.future;
@@ -68,7 +69,7 @@ class ImapClient {
 
   void _responseHandler(response) {
     response = new String.fromCharCodes(response);
-    if(_responseIsGreeting) {
+    if(_isResponseGreeting) {
       _handleGreeting(response);
     } else {
       _handleServerResponse(response);
@@ -89,20 +90,22 @@ class ImapClient {
           _connectionState = stateAuthenticated;
           break;
       }
-      _responseIsGreeting = false;
+      _isResponseGreeting = false;
     }
   }
 
   void _handleServerResponse(String response) {
-    _responseBlocks[_registeredTags.first].add(response);
+    List<String> lines = response.split(new RegExp('\n|\r'));
+    lines..removeLast()..removeLast(); // Remove CRLF at the end
+    _responseBlocks[_registeredTags.first].addAll(lines);
     // Marks corresponding tag as complete if the response is tagged
-    Match match = _tagMatcher.firstMatch(response);
+    Match match = _tagMatcher.firstMatch(lines.last);
     if(match != null && match.group(1) == _registeredTags.first) {
       String tag = match.group(1);
       _registeredTags.removeAt(0); // remove from active tags
       _responseStates.add(new MapEntry(tag, 'complete'));
     }
-    else if (_continueMatcher.firstMatch(response) != null) {
+    else if (_continueMatcher.firstMatch(lines.last) != null) {
       String tag = _registeredTags.first;
       _responseStates.add(new MapEntry(tag, 'continue'));
     }
