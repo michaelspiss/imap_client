@@ -39,7 +39,6 @@ class ImapClient {
   bool _commandUseUid = false;
 
   /// The matcher looking for tagged responses.
-  // TODO: It's currently possible that this matches something in a message's body. The current workaround is appending a timestamp to the tag.
   RegExp _tagMatcher = new RegExp("^(A[0-9]+) (BAD|NO|OK)(?: (.*))?\r\n\$",
       caseSensitive: false);
 
@@ -58,10 +57,10 @@ class ImapClient {
   /// It's highly recommended to (a)wait for this to finish.
   Future connect(String host, int port, bool secure) {
     var completer = new Completer();
+    _isResponseGreeting = true;
     _connection.connect(host, port, secure, _responseHandler, () {
       _connectionState = stateClosed;
     }).then((_) {
-      _isResponseGreeting = true;
       completer.complete();
     });
     return completer.future;
@@ -125,9 +124,7 @@ class ImapClient {
 
   /// Generates a new unique tag
   String requestNewTag() {
-    // workaround for regexp TODO
-    int timestamp = new DateTime.now().millisecondsSinceEpoch;
-    return 'A' + (_tagCounter++).toString() + timestamp.toString();
+    return 'A' + (_tagCounter++).toString();
   }
 
   /// Prepares tag for a new command
