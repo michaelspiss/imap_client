@@ -142,8 +142,9 @@ class ImapClient {
   /// Prepares response state change listeners for a new command
   ///
   /// [tag] is the used tag to listen for, [onContinue] allows for callbacks
-  /// whenever there is a command continuation request.
-  Completer _prepareResponseStateListener(String tag, Function onContinue) {
+  /// whenever there is a command continuation request. Returns a [Future] that
+  /// indicates command completion (tagged response).
+  Future _prepareResponseStateListener(String tag, Function onContinue) {
     var completer = new Completer();
     StreamSubscription subscription;
     subscription = _responseStates.stream.listen((responseState) {
@@ -158,7 +159,7 @@ class ImapClient {
         }
       }
     });
-    return completer;
+    return completer.future;
   }
 
   /// Sends a [command] to the server.
@@ -176,7 +177,7 @@ class ImapClient {
     String uid = _commandUseUid ? "UID " : "";
     _commandUseUid = false;
     _connection.writeln('$tag $uid$command');
-    return completer.future;
+    return completer;
   }
 
   /*
