@@ -335,6 +335,8 @@ class ImapClient {
 
   /// Sends the SELECT command as defined in RFC 3501
   Future<ImapResponse> select(String mailbox) {
+    _connectionState = stateAuthenticated;
+    _selectedMailbox = '';
     Future<ImapResponse> future = sendCommand('SELECT "$mailbox"');
     future.then((ImapResponse res) {
       if(res.isOK()) {
