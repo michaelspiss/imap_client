@@ -90,16 +90,15 @@ class ImapClient {
   void _handleGreeting(String response) {
     RegExp matcher = new RegExp('^\\* (BYE|OK|PREAUTH)', caseSensitive: false);
     Match match = matcher.firstMatch(response);
-    if(match != null) {
-      switch(match.group(1).toUpperCase()) {
-        case 'OK':
-          _connectionState = stateConnected;
-          break;
-        case 'PREAUTH':
-          _connectionState = stateAuthenticated;
-          break;
-      }
-      _isResponseGreeting = false;
+    switch(match?.group(1)?.toUpperCase()) {
+      case 'OK':
+        _connectionState = stateConnected;
+        _isResponseGreeting = false;
+        break;
+      case 'PREAUTH':
+        _connectionState = stateAuthenticated;
+        _isResponseGreeting = false;
+        break;
     }
   }
 
