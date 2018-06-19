@@ -460,4 +460,21 @@ class ImapClient {
     _commandUseUid = true;
     return this;
   }
+
+  /// Sends the IDLE command as defined in RFC 2177
+  Future<ImapResponse> idle() {
+    int oldState = _connectionState;
+    return sendCommand('IDLE', () {
+      _connectionState == stateIdle;
+    }).then((_) {
+      _connectionState == oldState;
+    });
+  }
+
+  /// Ends IDLE session
+  void endIdle() {
+    if(_connectionState == stateIdle) {
+      _connection.writeln('DONE');
+    }
+  }
 }
