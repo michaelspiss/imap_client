@@ -4,6 +4,8 @@ class ImapClient {
 
   ImapConnection _connection;
 
+  ImapAnalyzer _analyzer;
+
   /// All possible connection states
   static const stateClosed = -1;
   static const stateConnected = 0;
@@ -58,6 +60,7 @@ class ImapClient {
 
   ImapClient() {
     _connection = new ImapConnection();
+    _analyzer = new ImapAnalyzer(this);
     _responseStates = new StreamController.broadcast();
     setAuthMethod("plain", _authPlain);
     setAuthMethod("login", _authLogin);
@@ -171,55 +174,6 @@ class ImapClient {
     return completer.future;
   }
 
-  /// Calls handlers for message status / mailbox size updates
-  void _handleSizeStatusUpdate(Match m) {
-    switch(m.group(2).toUpperCase()) {
-      case 'EXISTS':
-        existsHandler?.call(_selectedMailbox, m.group(1));
-        break;
-      case 'RECENT':
-        recentHandler?.call(_selectedMailbox, m.group(1));
-        break;
-      case 'EXPUNGE':
-        expungeHandler?.call(_selectedMailbox, m.group(1));
-        break;
-      case 'FETCH':
-        fetchHandler?.call(_selectedMailbox, m.group(1), m.group(3));
-        break;
-    }
-  }
-
-  /// Interprets server responses and calls specific handlers.
-  ///
-  /// Returns an [ImapResponse] via the completer, which contains command
-  /// specific responses plus the command completion status (OK/BAD/NO).
-  void _interpretResponse(List<String> responseLines, Completer completer) {
-    RegExp tag = new RegExp('^A[0-9]+ (OK|NO|BAD)(?: .*)\$',
-        caseSensitive: false);
-    RegExp sizeStatusUpdate = new RegExp(
-        '^\\* ([0-9]+) (EXISTS|RECENT|EXPUNGE|FETCH) ?(\\(.*\\))?\$',
-        caseSensitive: false);
-    String status = '';
-    List<String> fullResponse = [];
-    for(String line in responseLines) {
-      if(line.isEmpty || _continueMatcher.firstMatch(line) != null) {
-        continue;
-      }
-      Match m = tag.firstMatch(line);
-      if(m != null && identical(line, responseLines.last)) {
-        status = m.group(1);
-        continue;
-      }
-      m = sizeStatusUpdate.firstMatch(line);
-      if(m != null) {
-        _handleSizeStatusUpdate(m);
-        continue;
-      }
-      fullResponse.add(line);
-    }
-    completer.complete(new ImapResponse(status: status,
-        response: fullResponse));
-  }
 
   /// Sends a [command] to the server.
   ///
@@ -239,7 +193,7 @@ class ImapClient {
     _connection.writeln('$tag $uid$command');
     Completer interpretationCompleter = new Completer();
     completion.then((responseLines) {
-      _interpretResponse(responseLines, interpretationCompleter);
+      _analyzer.interpretLines(responseLines, interpretationCompleter);
     });
     return interpretationCompleter.future;
   }
