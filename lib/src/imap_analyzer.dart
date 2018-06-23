@@ -90,7 +90,7 @@ class ImapAnalyzer {
         break;
       case 'FETCH':
         _client.fetchHandler?.call(
-            _client._selectedMailbox, m.group(8), m.group(10)
+            _client._selectedMailbox, m.group(8), _getGroupValue(m, 10)
         );
         break;
     }
