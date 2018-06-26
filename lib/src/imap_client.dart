@@ -106,8 +106,10 @@ class ImapClient {
   }
 
   void _handleServerResponse(String response) {
-    List<String> lines = response.split(new RegExp('\n|\r'));
-    lines..removeLast()..removeLast(); // Remove CRLF at the end
+    RegExp crlfEnd = new RegExp('\r\n\$');
+    bool hasCRLF = response.replaceAll(crlfEnd, '').length != response.length;
+    List<String> lines = response.replaceAll(crlfEnd, '')
+        .split(new RegExp('(?=\r\n|\r|\n)'));
     _responseBlocks[_registeredTags.first].addAll(lines);
     // Marks corresponding tag as complete if the response is tagged
     Match match = _tagMatcher.firstMatch(lines.last);
@@ -119,6 +121,10 @@ class ImapClient {
     else if (_continueMatcher.firstMatch(lines.last) != null) {
       String tag = _registeredTags.first;
       _responseStates.add(new MapEntry(tag, 'continue'));
+    }
+    else if (hasCRLF){
+      // It seems like we are in a fetch
+      _responseBlocks[_registeredTags.first].add('\r\n');
     }
   }
 
@@ -156,8 +162,8 @@ class ImapClient {
   /// [tag] is the used tag to listen for, [onContinue] allows for callbacks
   /// whenever there is a command continuation request. Returns a [Future] that
   /// indicates command completion (tagged response).
-  Future _prepareResponseStateListener(String tag, Function onContinue) {
-    var completer = new Completer();
+  Future<List<String>> _prepareResponseStateListener(String tag, Function onContinue) {
+    var completer = new Completer<List<String>>();
     StreamSubscription subscription;
     subscription = _responseStates.stream.listen((responseState) {
       if(responseState.key == tag) {
@@ -191,7 +197,7 @@ class ImapClient {
     String uid = _commandUseUid ? "UID " : "";
     _commandUseUid = false;
     _connection.writeln('$tag $uid$command');
-    Completer interpretationCompleter = new Completer();
+    Completer interpretationCompleter = new Completer<ImapResponse>();
     completion.then((responseLines) {
       _analyzer.interpretLines(responseLines, interpretationCompleter);
     });

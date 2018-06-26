@@ -19,10 +19,26 @@ class ImapResponse {
   final List<String> warnings;
   /// Information sent with untagged BADs
   final List<String> errors;
+  /// Holds all literals sent by the server
+  final Map<String, String> literals;
 
   ImapResponse({this.status, this.statusInformation, this.responseCodes,
     this.untagged, this.fullResponse, this.unrecognizedLines,
-    this.notices, this.warnings, this.errors});
+    this.notices, this.warnings, this.errors, this.literals});
+
+  static Map<String, dynamic> getResponseBlueprint() {
+    return <String, dynamic>{
+      'status': 'BAD',
+      'responseCodes': <String, String>{},
+      'untagged': <MapEntry<String, String>>[],
+      'unrecognizedLines': <String>[],
+      'fullResponse': '',
+      'notices': <String>[],
+      'warnings': <String>[],
+      'errors': <String>[],
+      'literals': <String, String>{}
+    };
+  }
 
   /// Creates a new ImapResponse from a map.
   ///
@@ -30,16 +46,19 @@ class ImapResponse {
   /// data types. Missing values are replaced by empty defaults.
   /// A missing "status" indicates an error!
   static ImapResponse fromMap(Map<String, dynamic> map) {
+    Map<String, dynamic> responses = getResponseBlueprint();
+    responses.addAll(map);
     return new ImapResponse(
-      status: map['status'] ?? 'BAD',
-      statusInformation: map['statusInformation'] ?? '',
-      responseCodes: map['responseCodes'] ?? {},
-      untagged: map['untagged'] ?? [],
-      fullResponse: map['fullResponse'],
-      unrecognizedLines: map['unrecognizedLines'] ?? [],
-      notices: map['notices'] ?? [],
-      warnings: map['warnings'] ?? [],
-      errors: map['errors'] ?? []
+      status: responses['status'],
+      statusInformation: responses['statusInformation'],
+      responseCodes: responses['responseCodes'],
+      untagged: responses['untagged'],
+      fullResponse: responses['fullResponse'],
+      unrecognizedLines: responses['unrecognizedLines'],
+      notices: responses['notices'],
+      warnings: responses['warnings'],
+      errors: responses['errors'],
+      literals: responses['literals']
     );
   }
 
