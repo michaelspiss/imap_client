@@ -26,9 +26,9 @@ void main() {
   });
 
   test('isOpen cannot be set manually', () {
-    try{
+    try {
       connection.isOpen = true; // ignore: assignment_to_final_no_setter
-    } catch(NoSuchMethodError) {}
+    } catch (NoSuchMethodError) {}
     expect(connection.isOpen, false);
   });
 
@@ -38,7 +38,9 @@ void main() {
 
   test('sendCommand writes to the server if the connection is open', () async {
     int called = 0;
-    await connection.connect('imap.gmail.com', 993, true, (_) { called++; });
+    await connection.connect('imap.gmail.com', 993, true, (_) {
+      called++;
+    });
     connection.writeln('0 CAPABILITY');
     // wait a second to make sure the command was able to send
     new Future.delayed(const Duration(seconds: 1), () {

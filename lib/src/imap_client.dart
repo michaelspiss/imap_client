@@ -1,7 +1,6 @@
 part of ImapClient;
 
 class ImapClient {
-
   ImapConnection _connection;
 
   ImapAnalyzer _analyzer;
@@ -21,6 +20,7 @@ class ImapClient {
 
   /// The current connection state
   int _connectionState = stateClosed;
+
   int get connectionState => _connectionState;
 
   /// Indicates that the command issued next should be sent with prepended "UID"
@@ -31,6 +31,7 @@ class ImapClient {
 
   /// Name of the selected mailbox. This does NOT indicate the selected state!
   String _selectedMailbox = '';
+
   String get selectedMailbox => _selectedMailbox;
 
   /// Handlers for specific (unsolicited) server responses.
@@ -90,8 +91,8 @@ class ImapClient {
   ///
   /// Use the optional [tag] to use a specific tag and don't create a new one.
   String _prepareTag([String tag]) {
-    if(tag.isEmpty) {
-    tag = requestNewTag();
+    if (tag.isEmpty) {
+      tag = requestNewTag();
     }
     _analyzer.registerTag(tag);
     return tag;
@@ -102,23 +103,22 @@ class ImapClient {
   /// [tag] is the used tag to listen for, [onContinue] allows for callbacks
   /// whenever there is a command continuation request. Returns a [Future] that
   /// indicates command completion (tagged response).
-  Future<ImapResponse> _prepareResponseStateListener(String tag, Function onContinue) {
+  Future<ImapResponse> _prepareResponseStateListener(
+      String tag, Function onContinue) {
     var completer = new Completer<ImapResponse>();
     StreamSubscription subscription;
     subscription = _analyzer.updates.listen((responseState) {
-      if(responseState['tag'] == tag) {
-        if(responseState['state'] == 'complete') {
+      if (responseState['tag'] == tag) {
+        if (responseState['state'] == 'complete') {
           subscription.cancel();
           completer.complete(responseState['response']);
-        }
-        else if (responseState['state'] == 'continue') {
+        } else if (responseState['state'] == 'continue') {
           onContinue();
         }
       }
     });
     return completer.future;
   }
-
 
   /// Sends a [command] to the server.
   ///
@@ -127,12 +127,11 @@ class ImapClient {
   /// time there is a command continuation request (+) from the server. It
   /// returns a [Future], that indicates command completion and carries the
   /// responded block.
-  Future<ImapResponse> sendCommand(String command, [Function onContinue = null,
-    String tag = '']) {
-
+  Future<ImapResponse> sendCommand(String command,
+      [Function onContinue = null, String tag = '']) {
     tag = _prepareTag(tag);
-    Future<ImapResponse> completion = _prepareResponseStateListener(tag,
-        onContinue);
+    Future<ImapResponse> completion =
+        _prepareResponseStateListener(tag, onContinue);
     String uid = _commandUseUid ? "UID " : "";
     _commandUseUid = false;
     _connection.writeln('$tag $uid$command');
@@ -162,8 +161,9 @@ class ImapClient {
   /// Converts a regular list to an imap list string
   String _listToImapString(List<String> list) {
     String listString = list.toString();
-    return '(' + listString.substring(1, listString.length-1)
-        .replaceAll(',', '') + ')';
+    return '(' +
+        listString.substring(1, listString.length - 1).replaceAll(',', '') +
+        ')';
   }
 
   /*
@@ -194,7 +194,7 @@ class ImapClient {
     var bytes_password = utf8.encode(password);
     IterationWrapper iteration = new IterationWrapper();
 
-    if(!supportsAuth(authMethod)) {
+    if (!supportsAuth(authMethod)) {
       return null; // TODO: Return error response/throw exception?
     }
 
@@ -233,9 +233,9 @@ class ImapClient {
     _selectedMailbox = '';
     Future<ImapResponse> future = sendCommand('SELECT "$mailbox"');
     future.then((ImapResponse res) {
-      if(res.isOK()) {
+      if (res.isOK()) {
         _connectionState = stateSelected;
-        _selectedMailbox =  mailbox;
+        _selectedMailbox = mailbox;
       }
     });
     return future;
@@ -313,7 +313,7 @@ class ImapClient {
   Future<ImapResponse> close() {
     Future<ImapResponse> future = sendCommand('CLOSE');
     future.then((ImapResponse res) {
-      if(res.isOK()) {
+      if (res.isOK()) {
         _connectionState = stateAuthenticated;
         _selectedMailbox = '';
       }
@@ -339,8 +339,8 @@ class ImapClient {
   }
 
   /// Sends the STORE command as defined in RFC 3501
-  Future<ImapResponse> store(String sequenceSet, String dataItem,
-      String dataValue) {
+  Future<ImapResponse> store(
+      String sequenceSet, String dataItem, String dataValue) {
     return sendCommand('STORE $sequenceSet $dataItem $dataValue');
   }
 
@@ -361,14 +361,15 @@ class ImapClient {
     new Timer(duration, endIdle);
     return sendCommand('IDLE', () {
       _connectionState = stateIdle;
-    })..then((_) {
-      _connectionState = oldState;
-    });
+    })
+      ..then((_) {
+        _connectionState = oldState;
+      });
   }
 
   /// Ends IDLE session
   void endIdle() {
-    if(_connectionState == stateIdle) {
+    if (_connectionState == stateIdle) {
       _connection.writeln('DONE');
     }
   }

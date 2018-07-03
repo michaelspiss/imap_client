@@ -1,7 +1,6 @@
 part of ImapClient;
 
 class ImapConnection {
-
   /// The socket used for communication
   Socket _connection;
 
@@ -16,21 +15,20 @@ class ImapConnection {
   /// Returns a future that completes when the connection is established and
   /// calls the [responseHandler] each time the new data arrives. There is an
   /// option for an [onDoneCallback] that gets called when the socket closes.
-  Future<Socket> connect(String host, int port, bool secure,
-      Function responseHandler, [Function onDoneCallback = null]) {
-    Future<Socket> futureSocket = secure ? SecureSocket.connect(host, port)
-        : Socket.connect(host, port);
+  Future<Socket> connect(
+      String host, int port, bool secure, Function responseHandler,
+      [Function onDoneCallback = null]) {
+    Future<Socket> futureSocket =
+        secure ? SecureSocket.connect(host, port) : Socket.connect(host, port);
 
     return futureSocket.then((socket) {
       _connection = socket;
       _isOpen = true;
-      _connection.listen(responseHandler,
-        cancelOnError: true,
-        onDone: () {
-          onDoneCallback();
-          _connection.destroy();
-          _isOpen = false;
-        });
+      _connection.listen(responseHandler, cancelOnError: true, onDone: () {
+        onDoneCallback();
+        _connection.destroy();
+        _isOpen = false;
+      });
     });
   }
 
@@ -39,7 +37,7 @@ class ImapConnection {
   /// Converts [obj] to a String by invoking Object.toString().
   /// Throws a [SocketException] if the connection is not open.
   void writeln([Object obj = ""]) {
-    if(_isOpen) {
+    if (_isOpen) {
       // MUST end with CRLF [RFC3501], a simple writeln() does not satisfy that
       _connection.write(obj.toString() + '\r\n');
     } else {

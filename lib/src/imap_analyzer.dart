@@ -1,7 +1,6 @@
 part of ImapClient;
 
 class ImapAnalyzer {
-
   /// The [ImapClient] instance that created this instance
   ImapClient _client;
 
@@ -31,6 +30,7 @@ class ImapAnalyzer {
   /// {"tag": tag, "status": "continue", "info": "foo"} or
   /// {"tag": tag, "status": "complete", "response": [ImapResponse]}
   StreamController _updates = new StreamController.broadcast();
+
   Stream get updates => _updates.stream;
 
   /// Holds results of the current tag's analysis data
@@ -38,8 +38,9 @@ class ImapAnalyzer {
 
   /// Splits an incoming response line into "semantic parts"
   // Groups:                         1                      2     3           4             5       6                     7         8       9                   10                    11             12          13                   14
-  RegExp _splitter = new RegExp('^(\\s+\$)|^(?:[\\r\\n])?(?:((A[0-9]+|\\*) ([a-z]+)(?: \\[(.*?)(?: (.*))?\\])?(?: ([^{\\r\\n]+?))?)|(\\* ([0-9]+) (EXISTS|RECENT|EXPUNGE|FETCH)(?: ([^\\r\\n]+?))?)|(\\+(?: ([^{\\r\\n]+?)?)?))(?: {([0-9]+)})?\$',
-    caseSensitive: false);
+  RegExp _splitter = new RegExp(
+      '^(\\s+\$)|^(?:[\\r\\n])?(?:((A[0-9]+|\\*) ([a-z]+)(?: \\[(.*?)(?: (.*))?\\])?(?: ([^{\\r\\n]+?))?)|(\\* ([0-9]+) (EXISTS|RECENT|EXPUNGE|FETCH)(?: ([^\\r\\n]+?))?)|(\\+(?: ([^{\\r\\n]+?)?)?))(?: {([0-9]+)})?\$',
+      caseSensitive: false);
 
   /// [client] must be the instance the analyser was instantiated in
   ImapAnalyzer(ImapClient client) {
@@ -59,12 +60,13 @@ class ImapAnalyzer {
   static List<String> stringToList(String string) {
     string = string.trim();
     Match match = new RegExp('^\\( *(.*?) *\\)\$').firstMatch(string);
-    if(match == null) {
+    if (match == null) {
       return <String>[];
     }
-    return match.group(1).split(" ")..removeWhere((string) {
-      return string.isEmpty;
-    });
+    return match.group(1).split(" ")
+      ..removeWhere((string) {
+        return string.isEmpty;
+      });
   }
 
   /// Interprets server responses and calls specific handlers.
@@ -72,13 +74,13 @@ class ImapAnalyzer {
   /// Returns an [ImapResponse] via the completer, which contains command
   /// specific responses plus the command completion status (OK/BAD/NO).
   void analyzeLine(String line) {
-    if(_isGreeting) {
+    if (_isGreeting) {
       _handleGreeting(line);
       return;
     }
-    if(_skipAnalysis) {
+    if (_skipAnalysis) {
       line = _addLineToLiteral(line);
-      if(line.isEmpty) {
+      if (line.isEmpty) {
         return;
       }
     }
@@ -91,20 +93,22 @@ class ImapAnalyzer {
     bool hasLiteral = _matchHasGroup(match, 14); // checks for tailing literal
     results['fullResponse'] += line;
     String type = _getTypeFromMatch(match);
-    if(hasLiteral) {
+    if (hasLiteral) {
       _setTemp(line, match);
-    } else if (type == 'empty') { // ignore
-    } else if(type == 'continue') {
+    } else if (type == 'empty') {
+      // ignore
+    } else if (type == 'continue') {
       _handleTemp();
       _handleContinue(_getGroupValue(match, 13) /* info */);
-    } else if(type == 'standard') {
+    } else if (type == 'standard') {
       _handleTemp();
       _handleStandardResponse(match);
-    } else if(type == 'update') {
+    } else if (type == 'update') {
       _handleTemp();
       _handleSizeStatusUpdate(match);
     } else {
-      _tempLine.isNotEmpty ? _addStringToTempLine(line)
+      _tempLine.isNotEmpty
+          ? _addStringToTempLine(line)
           : results['unrecognizedLines'].add(line);
     }
   }
@@ -117,16 +121,16 @@ class ImapAnalyzer {
 
   /// Handles a line that was in the temp. storage (has at least one literal)
   _handleTemp() {
-    if(_tempLine.isEmpty) {
+    if (_tempLine.isEmpty) {
       return;
     }
     Match match = _splitter.firstMatch(_tempLine);
     String type = _getTypeFromMatch(match);
-    if(type == 'continue') {
+    if (type == 'continue') {
       _handleContinue(_literals.first); // literal only possible for info
-    } else if(type == 'standard') {
+    } else if (type == 'standard') {
       _handleStandardResponse(_tempMatch);
-    } else if( type == 'update') {
+    } else if (type == 'update') {
       _handleSizeStatusUpdate(_tempMatch, true);
     }
     _tempLine = '';
@@ -140,7 +144,7 @@ class ImapAnalyzer {
   void _handleGreeting(String response) {
     RegExp matcher = new RegExp('^\\* (BYE|OK|PREAUTH)', caseSensitive: false);
     Match match = matcher.firstMatch(response);
-    switch(match?.group(1)?.toUpperCase()) {
+    switch (match?.group(1)?.toUpperCase()) {
       case 'OK':
         _client._connectionState = ImapClient.stateConnected;
         _isGreeting = false;
@@ -156,24 +160,26 @@ class ImapAnalyzer {
   void _handleStandardResponse(Match match) {
     bool isTagged = match.group(3) != '*';
     String id = match.group(4);
-    String type =   id == 'OK' ? 'notices' :
-                    id == 'NO' ? 'warnings' :
-                    id == 'BAD' ? 'errors' : '';
-    if(type.isNotEmpty) {
+    String type = id == 'OK'
+        ? 'notices'
+        : id == 'NO' ? 'warnings' : id == 'BAD' ? 'errors' : '';
+    if (type.isNotEmpty) {
       results[type].add(_getGroupValue(match, 7)); // reason for ok/bad/no
     } else {
       results['untagged'][id.toUpperCase()] = _getGroupValue(match, 7);
     }
-    if(_matchHasGroup(match, 5)) {
+    if (_matchHasGroup(match, 5)) {
       results['responseCodes'][_getGroupValue(match, 5).toUpperCase()] =
           _getGroupValue(match, 6);
     }
-    if(isTagged) {
+    if (isTagged) {
       results['status'] = id;
       results['statusInfo'] = _getGroupValue(match, 7);
-      _updates.add(
-          {"tag": match.group(3), "state": "complete",
-            "response": ImapResponse.fromMap(results)});
+      _updates.add({
+        "tag": match.group(3),
+        "state": "complete",
+        "response": ImapResponse.fromMap(results)
+      });
       _registeredTags.remove(match.group(3));
       results = ImapResponse.getResponseBlueprint();
     }
@@ -181,16 +187,15 @@ class ImapAnalyzer {
 
   /// Handles a command continuation request from the server
   _handleContinue(String info) {
-    _updates.add(
-        {"tag": _registeredTags.first, "state": "continue", "info": info}
-        );
+    _updates
+        .add({"tag": _registeredTags.first, "state": "continue", "info": info});
   }
 
   /// Calls handlers for message status / mailbox size updates
   ///
   /// Match from sizeStatusUpdate regexp [_splitter]
   void _handleSizeStatusUpdate(Match match, [bool useTemp = false]) {
-    switch(match.group(10).toUpperCase()) {
+    switch (match.group(10).toUpperCase()) {
       case 'EXISTS':
         _client.existsHandler?.call(_client._selectedMailbox, match.group(9));
         break;
@@ -201,20 +206,20 @@ class ImapAnalyzer {
         _client.expungeHandler?.call(_client._selectedMailbox, match.group(9));
         break;
       case 'FETCH':
-        Map<String, String> attr = useTemp ? _getMapFromTemp() :
-          _getMapFromString(_getGroupValue(match, 11));
-        _client.fetchHandler?.call(
-            _client._selectedMailbox, match.group(9), attr
-        );
+        Map<String, String> attr = useTemp
+            ? _getMapFromTemp()
+            : _getMapFromString(_getGroupValue(match, 11));
+        _client.fetchHandler
+            ?.call(_client._selectedMailbox, match.group(9), attr);
         break;
     }
   }
 
   /// Turns a List (One Two Three Four) into a Map {One: Two, Three: Four}
   Map<String, String> _getMapFromString(String string) {
-    List<String> parts = string.substring(1, string.length-1).split(" ");
+    List<String> parts = string.substring(1, string.length - 1).split(" ");
     Map<String, String> map = new Map<String, String>();
-    for(int i = 0; i < parts.length; i++) {
+    for (int i = 0; i < parts.length; i++) {
       map[parts[i]] = ++i < parts.length ? parts[i] : "";
     }
     return map;
@@ -224,17 +229,17 @@ class ImapAnalyzer {
   ///
   /// Handles literals.
   Map<String, String> _getMapFromTemp() {
-    List<String> parts = new RegExp('\\((.*?)\\)').firstMatch(_tempLine)
-        .group(1).split(" ");
+    List<String> parts =
+        new RegExp('\\((.*?)\\)').firstMatch(_tempLine).group(1).split(" ");
     parts.removeWhere((string) {
       return string.isEmpty;
     });
     Map<String, String> map = new Map<String, String>();
-    for(int i = 0; i < parts.length; i++) {
+    for (int i = 0; i < parts.length; i++) {
       String value = ++i < parts.length ? parts[i] : "";
       Match match = new RegExp('{([0-9]+?)}').firstMatch(parts[i]);
       value = match != null ? _literals[int.parse(match.group(1))] : parts[i];
-      map[parts[i-1]] = value;
+      map[parts[i - 1]] = value;
     }
     return map;
   }
@@ -248,19 +253,19 @@ class ImapAnalyzer {
   /// update: message status / mailbox size update
   /// undefined: line did not match any of the above
   String _getTypeFromMatch(Match match) {
-    if(match == null) {
+    if (match == null) {
       return 'undefined'; // [_splitter] could not find a match
     }
-    if(_matchHasGroup(match, 1)) {
+    if (_matchHasGroup(match, 1)) {
       return 'empty'; // line is empty
     }
-    if(_matchHasGroup(match, 2)) {
+    if (_matchHasGroup(match, 2)) {
       return 'standard'; // tagged / untagged response
     }
-    if(_matchHasGroup(match, 8)) {
+    if (_matchHasGroup(match, 8)) {
       return 'update'; // message status / mailbox size update
     }
-    if(_matchHasGroup(match, 12)) {
+    if (_matchHasGroup(match, 12)) {
       return 'continue'; // command continuation request
     }
     return 'undefined'; // none of the above
@@ -272,7 +277,7 @@ class ImapAnalyzer {
   String _addLineToLiteral(String line) {
     List<int> encoded = _utf8.encode(line);
     String rest = '';
-    if(_currentLiteralLength + encoded.length > _actualLiteralLength) {
+    if (_currentLiteralLength + encoded.length > _actualLiteralLength) {
       int max = _currentLiteralLength + encoded.length - _actualLiteralLength;
       _literal += line.substring(0, max);
       rest = line.substring(max);
@@ -282,7 +287,7 @@ class ImapAnalyzer {
     }
     _skipAnalysis = _currentLiteralLength < _actualLiteralLength;
     // if limit is reached
-    if(!_skipAnalysis) {
+    if (!_skipAnalysis) {
       _literals.add(_literal);
       _literal = '';
     }
@@ -291,10 +296,12 @@ class ImapAnalyzer {
 
   /// Adds a string that could not be classified to temp. Handles literals.
   void _addStringToTempLine(String string) {
-    _tempLine += string.trim().replaceFirstMapped(new RegExp('{([0-9]+?)}\$'), (match) {
-      _captureLiteral(int.parse(match.group(1)));
-      return '{$_literalId}';
-    }) + " ";
+    _tempLine +=
+        string.trim().replaceFirstMapped(new RegExp('{([0-9]+?)}\$'), (match) {
+              _captureLiteral(int.parse(match.group(1)));
+              return '{$_literalId}';
+            }) +
+            " ";
   }
 
   /// Prepares the capturing of a new literal.
@@ -303,7 +310,7 @@ class ImapAnalyzer {
     _currentLiteralLength = 0;
     _literal = '';
     _literalId++;
-    if(_actualLiteralLength > 0) {
+    if (_actualLiteralLength > 0) {
       _skipAnalysis = true;
     }
   }
@@ -312,7 +319,7 @@ class ImapAnalyzer {
   String _getGroupValue(Match match, int group) {
     try {
       return match.group(group) ?? '';
-    } catch(e) {
+    } catch (e) {
       return '';
     }
   }
