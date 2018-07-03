@@ -359,9 +359,9 @@ class ImapClient {
   Future<ImapResponse> idle() {
     int oldState = _connectionState;
     return sendCommand('IDLE', () {
-      _connectionState == stateIdle;
+      _connectionState = stateIdle;
     }).then((_) {
-      _connectionState == oldState;
+      _connectionState = oldState;
     });
   }
 
