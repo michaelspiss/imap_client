@@ -71,7 +71,7 @@ class ImapClient {
   }
 
   /// Checks if an authentication method is supported. Capitalization is ignored
-  bool supportsAuth(String methodName) {
+  bool clientSupportsAuth(String methodName) {
     return _authMethods.containsKey(methodName.toLowerCase());
   }
 
@@ -138,6 +138,8 @@ class ImapClient {
     return completion;
   }
 
+  // TODO: use response codes
+
   /*
   Helper methods
    */
@@ -187,6 +189,9 @@ class ImapClient {
   }
 
   /// Sends the AUTHENTICATE command as defined in RFC 3501
+  ///
+  /// Throws an [UnsupportedError] if a by the client unsupported auth method
+  /// is used.
   Future<ImapResponse> authenticate(String username, String password,
       [String authMethod = "plain"]) {
     authMethod = authMethod.toLowerCase();
@@ -194,8 +199,7 @@ class ImapClient {
     var bytes_password = utf8.encode(password);
     IterationWrapper iteration = new IterationWrapper();
 
-    if (!supportsAuth(authMethod)) {
-      return null; // TODO: Return error response/throw exception?
+    if (!clientSupportsAuth(authMethod)) {
     }
 
     return sendCommand('AUTHENTICATE $authMethod', () {
