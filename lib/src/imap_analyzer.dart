@@ -55,11 +55,22 @@ class ImapAnalyzer {
     _registeredTags.add(tag);
   }
 
+  /// Turns an imap list (one two three) into a dart list [one, two, three]
+  static List<String> stringToList(String string) {
+    string = string.trim();
+    Match match = new RegExp('^\\( *(.*?) *\\)\$').firstMatch(string);
+    if(match == null) {
+      return <String>[];
+    }
+    return match.group(1).split(" ")..removeWhere((string) {
+      return string.isEmpty;
+    });
+  }
+
   /// Interprets server responses and calls specific handlers.
   ///
   /// Returns an [ImapResponse] via the completer, which contains command
-  /// specific responses plus the command completion status (OK/BAD/NO). This
-  /// and [registerTag] the only public methods in this class.
+  /// specific responses plus the command completion status (OK/BAD/NO).
   void analyzeLine(String line) {
     if(_isGreeting) {
       _handleGreeting(line);
