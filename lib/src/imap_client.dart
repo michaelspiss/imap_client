@@ -356,11 +356,12 @@ class ImapClient {
   }
 
   /// Sends the IDLE command as defined in RFC 2177
-  Future<ImapResponse> idle() {
+  Future<ImapResponse> idle([Duration duration = const Duration(minutes: 30)]) {
     int oldState = _connectionState;
+    new Timer(duration, endIdle);
     return sendCommand('IDLE', () {
       _connectionState = stateIdle;
-    }).then((_) {
+    })..then((_) {
       _connectionState = oldState;
     });
   }
