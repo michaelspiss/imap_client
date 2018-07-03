@@ -200,6 +200,9 @@ class ImapClient {
     IterationWrapper iteration = new IterationWrapper();
 
     if (!clientSupportsAuth(authMethod)) {
+      throw new UnsupportedError(
+          "Authentication method \"$authMethod\" is not supported by this "
+          "client. You can implement it by using setAuthMethod().");
     }
 
     return sendCommand('AUTHENTICATE $authMethod', () {
