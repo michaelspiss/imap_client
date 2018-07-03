@@ -13,19 +13,8 @@ class ImapClient {
   static const stateSelected = 2;
   static const stateIdle = 3;
 
-  /// Saves all responses in blocks defined by tags
-  Map<String, List<String>> _responseBlocks = new Map();
-
-  /// Tags used for commands that are awaiting a response
-  List<String> _registeredTags = new List();
-
   /// Increases every time a new tag is requested, see [requestNewTag]
   int _tagCounter = 0;
-
-  /// [Stream]s all tagged responses to let functions know their status changed
-  ///
-  /// Statuses are "complete" and "continue", new MapEntry(tag, status)
-  StreamController<MapEntry<String, String>> _responseStates;
 
   /// Contains all supported authentication methods
   Map<String, Function> _authMethods = new Map();
@@ -34,19 +23,11 @@ class ImapClient {
   int _connectionState = stateClosed;
   int get connectionState => _connectionState;
 
-  /// Indicates that the response is the initial greeting
-  bool _isResponseGreeting = true;
-
   /// Indicates that the command issued next should be sent with prepended "UID"
   bool _commandUseUid = false;
 
-  /// The matcher looking for tagged responses.
-  RegExp _tagMatcher = new RegExp("^(A[0-9]+) (BAD|NO|OK)(?: (.*))?\$",
-      caseSensitive: false, multiLine: true);
-
-  /// The matcher looking for "continue" (+) responses.
-  RegExp _continueMatcher = new RegExp("^\\+(?: (.*))?\$",
-      multiLine: true);
+  /// Streams single lines to the analyzer
+  StreamController<String> _lines;
 
   /// Name of the selected mailbox. This does NOT indicate the selected state!
   String _selectedMailbox = '';
@@ -61,7 +42,8 @@ class ImapClient {
   ImapClient() {
     _connection = new ImapConnection();
     _analyzer = new ImapAnalyzer(this);
-    _responseStates = new StreamController.broadcast();
+    _lines = new StreamController<String>();
+    _lines.stream.listen(_analyzer.analyzeLine);
     setAuthMethod("plain", _authPlain);
     setAuthMethod("login", _authLogin);
   }
@@ -71,7 +53,7 @@ class ImapClient {
   /// It's highly recommended to (a)wait for this to finish.
   Future connect(String host, int port, bool secure) {
     var completer = new Completer();
-    _isResponseGreeting = true;
+    _analyzer._isGreeting = true;
     _connection.connect(host, port, secure, _responseHandler, () {
       _connectionState = stateClosed;
       _selectedMailbox = '';
@@ -83,49 +65,8 @@ class ImapClient {
 
   void _responseHandler(response) {
     response = new String.fromCharCodes(response);
-    if(_isResponseGreeting) {
-      _handleGreeting(response);
-    } else {
-      _handleServerResponse(response);
-    }
-  }
-
-  void _handleGreeting(String response) {
-    RegExp matcher = new RegExp('^\\* (BYE|OK|PREAUTH)', caseSensitive: false);
-    Match match = matcher.firstMatch(response);
-    switch(match?.group(1)?.toUpperCase()) {
-      case 'OK':
-        _connectionState = stateConnected;
-        _isResponseGreeting = false;
-        break;
-      case 'PREAUTH':
-        _connectionState = stateAuthenticated;
-        _isResponseGreeting = false;
-        break;
-    }
-  }
-
-  void _handleServerResponse(String response) {
-    RegExp crlfEnd = new RegExp('\r\n\$');
-    bool hasCRLF = response.replaceAll(crlfEnd, '').length != response.length;
-    List<String> lines = response.replaceAll(crlfEnd, '')
-        .split(new RegExp('(?=\r\n|\r|\n)'));
-    _responseBlocks[_registeredTags.first].addAll(lines);
-    // Marks corresponding tag as complete if the response is tagged
-    Match match = _tagMatcher.firstMatch(lines.last);
-    if(match != null && match.group(1) == _registeredTags.first) {
-      String tag = match.group(1);
-      _registeredTags.removeAt(0); // remove from active tags
-      _responseStates.add(new MapEntry(tag, 'complete'));
-    }
-    else if (_continueMatcher.firstMatch(lines.last) != null) {
-      String tag = _registeredTags.first;
-      _responseStates.add(new MapEntry(tag, 'continue'));
-    }
-    else if (hasCRLF){
-      // It seems like we are in a fetch
-      _responseBlocks[_registeredTags.first].add('\r\n');
-    }
+    List<String> lines = response.split(new RegExp('(?=\r\n|\n|\r)'));
+    _lines.addStream(Stream.fromIterable(lines));
   }
 
   /// Checks if an authentication method is supported. Capitalization is ignored
@@ -152,8 +93,7 @@ class ImapClient {
     if(tag.isEmpty) {
     tag = requestNewTag();
     }
-    _registeredTags.add(tag);
-    _responseBlocks[tag] = new List();
+    _analyzer.registerTag(tag);
     return tag;
   }
 
@@ -162,17 +102,16 @@ class ImapClient {
   /// [tag] is the used tag to listen for, [onContinue] allows for callbacks
   /// whenever there is a command continuation request. Returns a [Future] that
   /// indicates command completion (tagged response).
-  Future<List<String>> _prepareResponseStateListener(String tag, Function onContinue) {
-    var completer = new Completer<List<String>>();
+  Future<ImapResponse> _prepareResponseStateListener(String tag, Function onContinue) {
+    var completer = new Completer<ImapResponse>();
     StreamSubscription subscription;
-    subscription = _responseStates.stream.listen((responseState) {
-      if(responseState.key == tag) {
-        if(responseState.value == 'complete') {
+    subscription = _analyzer.updates.listen((responseState) {
+      if(responseState['tag'] == tag) {
+        if(responseState['state'] == 'complete') {
           subscription.cancel();
-          completer.complete(_responseBlocks[tag]);
-          _responseBlocks.remove(tag);
+          completer.complete(responseState['response']);
         }
-        else if (responseState.value == 'continue') {
+        else if (responseState['state'] == 'continue') {
           onContinue();
         }
       }
@@ -192,16 +131,12 @@ class ImapClient {
     String tag = '']) {
 
     tag = _prepareTag(tag);
-    Future<List<String>> completion = _prepareResponseStateListener(tag,
+    Future<ImapResponse> completion = _prepareResponseStateListener(tag,
         onContinue);
     String uid = _commandUseUid ? "UID " : "";
     _commandUseUid = false;
     _connection.writeln('$tag $uid$command');
-    Completer interpretationCompleter = new Completer<ImapResponse>();
-    completion.then((responseLines) {
-      _analyzer.interpretLines(responseLines, interpretationCompleter);
-    });
-    return interpretationCompleter.future;
+    return completion;
   }
 
   /*
