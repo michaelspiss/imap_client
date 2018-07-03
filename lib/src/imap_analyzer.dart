@@ -5,140 +5,296 @@ class ImapAnalyzer {
   /// The [ImapClient] instance that created this instance
   ImapClient _client;
 
+  /// Indicates that the line is in a literal and not supposed to be analyzed
+  bool _skipAnalysis = false;
+
+  /// Indicates that the incoming line as a greeting and needs special treatment
+  bool _isGreeting = true;
+
+  /// Holds all known command tags used by [ImapClient]
+  List<String> _registeredTags = <String>[];
+
+  /// Temporal storage for responses with literals
+  String _tempLine = '';
+  Match _tempMatch;
+  List<String> _literals = [];
+  String _literal = '';
+
+  /// Literal character counter
+  Utf8Codec _utf8 = new Utf8Codec();
+  int _actualLiteralLength;
+  int _currentLiteralLength;
+  int _literalId = -1; // to make it 0 indexed.
+
+  /// Sends command status updates back to the client
+  ///
+  /// {"tag": tag, "status": "continue", "info": "foo"} or
+  /// {"tag": tag, "status": "complete", "response": [ImapResponse]}
+  StreamController _updates = new StreamController.broadcast();
+  Stream get updates => _updates.stream;
+
+  /// Holds results of the current tag's analysis data
+  Map<String, dynamic> results = ImapResponse.getResponseBlueprint();
+
+  /// Splits an incoming response line into "semantic parts"
+  // Groups:                         1                      2     3           4             5       6                     7         8       9                   10                    11             12          13                   14
+  RegExp _splitter = new RegExp('^(\\s+\$)|^(?:[\\r\\n])?(?:((A[0-9]+|\\*) ([a-z]+)(?: \\[(.*?)(?: (.*))?\\])?(?: ([^{\\r\\n]+?))?)|(\\* ([0-9]+) (EXISTS|RECENT|EXPUNGE|FETCH)(?: ([^\\r\\n]+?))?)|(\\+(?: ([^{\\r\\n]+?)?)?))(?: {([0-9]+)})?\$',
+    caseSensitive: false);
+
+  /// [client] must be the instance the analyser was instantiated in
   ImapAnalyzer(ImapClient client) {
     _client = client;
   }
 
-  bool _skipAnalysis = false;
-
-  Utf8Codec _utf8 = new Utf8Codec();
-
-  int _literalLength = 0;
-  int _stringLength = 0;
-  int _literalId = -1; // -1 to make the map zero-indexed
-
-  /// Remembers the last line inserted for the addition of literals
-  String _lastLineType = '';
-
-  /// Used for soon to be updated lines
-  String _tempLine = '';
+  /// Registers a new tag used by the client.
+  ///
+  /// This is mainly needed for possible command continue requests where the
+  /// tag is not known beforehand. Works FIFO, so the first tag will always be
+  /// used for command continue request callbacks.
+  void registerTag(String tag) {
+    _registeredTags.add(tag);
+  }
 
   /// Interprets server responses and calls specific handlers.
   ///
   /// Returns an [ImapResponse] via the completer, which contains command
-  /// specific responses plus the command completion status (OK/BAD/NO).
-  void interpretLines(List<String> responseLines, Completer completer) {
-    // Identifies response types (status/size update/continue/tagged/untagged)
-    // Groups:                          1      2          3             4        5              6       7       8                  9                    10      11       12             13
-    RegExp identifier = new RegExp("^(?:((A[0-9]+|\\*) ([a-z]+)(?: \\[(.*?)(?: (.*))?\\])?(?: (.*?))?)|(\\* ([0-9]+) (EXISTS|RECENT|EXPUNGE|FETCH)(?: (.*?))?)|(\\+(?: (.*?))?))(?: {([0-9]+)})?\$",
-      caseSensitive: false);
-    Map<String, dynamic> results = ImapResponse.getResponseBlueprint();
-    results['fullResponse'] = responseLines.join();
-    for(int i = 0; i<responseLines.length; i++) {
-      String line = responseLines[i];
-      if(_skipAnalysis) {
-        _stringLength += _utf8.encode(line).length;
-        results['literals'][_literalId.toString()] += line;
-        _skipAnalysis = _literalLength > _stringLength;
-        continue;
-      }
-      Match match = identifier.firstMatch(line.trim());
-      if(line.isEmpty || line == '\r' || _matchHasGroup(match, 11)) {
-        // skip empty / "continue" - CR are not removed by trim -> extra check
-        continue;
-      }
-      else if(_matchHasGroup(match, 1)) { // tagged/untagged response
-        _commonResponseAnalyzer(match, results, (i+1 == responseLines.length));
-      }
-      else if(_matchHasGroup(match, 7)) { // msg status / mailbox size update
-        _handleSizeStatusUpdate(match);
-      }
-      else {
-        _appendToLast(results, line);
-      }
-      if(_matchHasGroup(match, 13)) { // command has literal
-        _captureLiteral(int.parse(match.group(13)), results);
+  /// specific responses plus the command completion status (OK/BAD/NO). This
+  /// and [registerTag] the only public methods in this class.
+  void analyzeLine(String line) {
+    if(_isGreeting) {
+      _handleGreeting(line);
+      return;
+    }
+    if(_skipAnalysis) {
+      line = _addLineToLiteral(line);
+      if(line.isEmpty) {
+        return;
       }
     }
-    completer.complete(ImapResponse.fromMap(results));
+    _handleLine(line);
   }
 
-  /// Helper method to analyze tagged and untagged responses
-  void _commonResponseAnalyzer(Match match, Map results,
-      bool isLastLine) {
-    bool isTagged = match.group(2) != '*';
-    String id = _getGroupValue(match, 3).toUpperCase();
+  /// Decides which type of response was sent and handles it accordingly
+  void _handleLine(String line, [List<String> literals = null]) {
+    Match match = _splitter.firstMatch(line);
+    bool hasLiteral = _matchHasGroup(match, 14); // checks for tailing literal
+    results['fullResponse'] += line;
+    String type = _getTypeFromMatch(match);
+    if(hasLiteral) {
+      _setTemp(line, match);
+    } else if (type == 'empty') { // ignore
+    } else if(type == 'continue') {
+      _handleTemp();
+      _handleContinue(_getGroupValue(match, 13) /* info */);
+    } else if(type == 'standard') {
+      _handleTemp();
+      _handleStandardResponse(match);
+    } else if(type == 'update') {
+      _handleTemp();
+      _handleSizeStatusUpdate(match);
+    } else {
+      _tempLine.isNotEmpty ? _addStringToTempLine(line)
+          : results['unrecognizedLines'].add(line);
+    }
+  }
+
+  /// Sets a new temporal line
+  void _setTemp(String line, Match match) {
+    _addStringToTempLine(line);
+    _tempMatch = match;
+  }
+
+  /// Handles a line that was in the temp. storage (has at least one literal)
+  _handleTemp() {
+    if(_tempLine.isEmpty) {
+      return;
+    }
+    Match match = _splitter.firstMatch(_tempLine);
+    String type = _getTypeFromMatch(match);
+    if(type == 'continue') {
+      _handleContinue(_literals.first); // literal only possible for info
+    } else if(type == 'standard') {
+      _handleStandardResponse(_tempMatch);
+    } else if( type == 'update') {
+      _handleSizeStatusUpdate(_tempMatch, true);
+    }
+    _tempLine = '';
+    _tempMatch = null;
+    _literalId = -1;
+    _literal = '';
+    _literals = <String>[];
+  }
+
+  /// Handles the server greeting
+  void _handleGreeting(String response) {
+    RegExp matcher = new RegExp('^\\* (BYE|OK|PREAUTH)', caseSensitive: false);
+    Match match = matcher.firstMatch(response);
+    switch(match?.group(1)?.toUpperCase()) {
+      case 'OK':
+        _client._connectionState = ImapClient.stateConnected;
+        _isGreeting = false;
+        break;
+      case 'PREAUTH':
+        _client._connectionState = ImapClient.stateAuthenticated;
+        _isGreeting = false;
+        break;
+    }
+  }
+
+  /// Handler for a standard tagged / untagged response
+  void _handleStandardResponse(Match match) {
+    bool isTagged = match.group(3) != '*';
+    String id = match.group(4);
     String type =   id == 'OK' ? 'notices' :
                     id == 'NO' ? 'warnings' :
                     id == 'BAD' ? 'errors' : '';
     if(type.isNotEmpty) {
-      results[type].add(_getGroupValue(match, 6));
-      _lastLineType = type;
+      results[type].add(_getGroupValue(match, 7)); // reason for ok/bad/no
     } else {
-      results['untagged'].add(new MapEntry<String, String>(id,
-          _getGroupValue(match, 6)));
-      _lastLineType = 'untagged';
+      results['untagged'][id.toUpperCase()] = _getGroupValue(match, 7);
     }
-    if(_matchHasGroup(match, 4)) {
-      results['responseCodes'][_getGroupValue(match, 4).toUpperCase()] =
-          _getGroupValue(match, 5);
+    if(_matchHasGroup(match, 5)) {
+      results['responseCodes'][_getGroupValue(match, 5).toUpperCase()] =
+          _getGroupValue(match, 6);
     }
-    if(isLastLine && isTagged) {
+    if(isTagged) {
       results['status'] = id;
-      results['statusInfo'] = _getGroupValue(match, 6);
+      results['statusInfo'] = _getGroupValue(match, 7);
+      _updates.add(
+          {"tag": match.group(3), "state": "complete",
+            "response": ImapResponse.fromMap(results)});
+      _registeredTags.remove(match.group(3));
+      results = ImapResponse.getResponseBlueprint();
     }
+  }
+
+  /// Handles a command continuation request from the server
+  _handleContinue(String info) {
+    _updates.add(
+        {"tag": _registeredTags.first, "state": "continue", "info": info}
+        );
   }
 
   /// Calls handlers for message status / mailbox size updates
   ///
-  /// Match from sizeStatusUpdate regexp in [interpretLines]
-  void _handleSizeStatusUpdate(Match m) {
-    switch(m.group(9).toUpperCase()) {
+  /// Match from sizeStatusUpdate regexp [_splitter]
+  void _handleSizeStatusUpdate(Match match, [bool useTemp = false]) {
+    switch(match.group(10).toUpperCase()) {
       case 'EXISTS':
-        _client.existsHandler?.call(_client._selectedMailbox, m.group(8));
+        _client.existsHandler?.call(_client._selectedMailbox, match.group(9));
         break;
       case 'RECENT':
-        _client.recentHandler?.call(_client._selectedMailbox, m.group(8));
+        _client.recentHandler?.call(_client._selectedMailbox, match.group(9));
         break;
       case 'EXPUNGE':
-        _client.expungeHandler?.call(_client._selectedMailbox, m.group(8));
+        _client.expungeHandler?.call(_client._selectedMailbox, match.group(9));
         break;
       case 'FETCH':
-        if(_matchHasGroup(m, 13)) { // has literal
-
-        } else {
-          _client.fetchHandler?.call(
-              _client._selectedMailbox, m.group(8), _getGroupValue(m, 10)
-          );
-        }
+        Map<String, String> attr = useTemp ? _getMapFromTemp() :
+          _getMapFromString(_getGroupValue(match, 11));
+        _client.fetchHandler?.call(
+            _client._selectedMailbox, match.group(9), attr
+        );
         break;
     }
   }
 
-  /// Prepares the capturing of a new literal. Returns the new literal's id
-  int _captureLiteral(int length, Map results) {
-    _literalLength = length;
-    _stringLength = 0;
-    _literalId = ++_literalId;
-    results['literals'][_literalId.toString()] = '';
-    if(_literalLength > 0) {
-      _skipAnalysis = true;
+  /// Turns a List (One Two Three Four) into a Map {One: Two, Three: Four}
+  Map<String, String> _getMapFromString(String string) {
+    List<String> parts = string.substring(1, string.length-1).split(" ");
+    Map<String, String> map = new Map<String, String>();
+    for(int i = 0; i < parts.length; i++) {
+      map[parts[i]] = ++i < parts.length ? parts[i] : "";
     }
-    _appendToLast(results, ' {$_literalId}');
-
-    return _literalId;
+    return map;
   }
 
-  void _appendToLast(Map results, String string) {
-    List list = results[_lastLineType];
-    var last = list.last;
-    if(last is MapEntry) {
-      last = new MapEntry<String, String>(last.key, last.value + string);
-    } else {
-      last += string;
+  /// Creates a map {a: b, c: d} from an imap list (a b c d) in temp. storage.
+  ///
+  /// Handles literals.
+  Map<String, String> _getMapFromTemp() {
+    List<String> parts = new RegExp('\\((.*?)\\)').firstMatch(_tempLine)
+        .group(1).split(" ");
+    parts.removeWhere((string) {
+      return string.isEmpty;
+    });
+    Map<String, String> map = new Map<String, String>();
+    for(int i = 0; i < parts.length; i++) {
+      String value = ++i < parts.length ? parts[i] : "";
+      Match match = new RegExp('{([0-9]+?)}').firstMatch(parts[i]);
+      value = match != null ? _literals[int.parse(match.group(1))] : parts[i];
+      map[parts[i-1]] = value;
     }
-    list.removeLast();
-    list.add(last);
+    return map;
+  }
+
+  /// Returns the line's type from the [_splitter] match
+  ///
+  /// Possible types are: undefined, empty, standard, update and continue.
+  /// empty: line is empty
+  /// standard: tagged / untagged response
+  /// update: command continuation request
+  /// update: message status / mailbox size update
+  /// undefined: line did not match any of the above
+  String _getTypeFromMatch(Match match) {
+    if(match == null) {
+      return 'undefined'; // [_splitter] could not find a match
+    }
+    if(_matchHasGroup(match, 1)) {
+      return 'empty'; // line is empty
+    }
+    if(_matchHasGroup(match, 2)) {
+      return 'standard'; // tagged / untagged response
+    }
+    if(_matchHasGroup(match, 8)) {
+      return 'update'; // message status / mailbox size update
+    }
+    if(_matchHasGroup(match, 12)) {
+      return 'continue'; // command continuation request
+    }
+    return 'undefined'; // none of the above
+  }
+
+  /// Adds the line to a literal. Handles counting and cancels it automatically.
+  ///
+  /// Returns the end of the line if it is no longer part of the literal.
+  String _addLineToLiteral(String line) {
+    List<int> encoded = _utf8.encode(line);
+    String rest = '';
+    if(_currentLiteralLength + encoded.length > _actualLiteralLength) {
+      int max = _currentLiteralLength + encoded.length - _actualLiteralLength;
+      _literal += line.substring(0, max);
+      rest = line.substring(max);
+    } else {
+      _currentLiteralLength += _utf8.encode(line).length;
+      _literal += line;
+    }
+    _skipAnalysis = _currentLiteralLength < _actualLiteralLength;
+    // if limit is reached
+    if(!_skipAnalysis) {
+      _literals.add(_literal);
+      _literal = '';
+    }
+    return rest;
+  }
+
+  /// Adds a string that could not be classified to temp. Handles literals.
+  void _addStringToTempLine(String string) {
+    _tempLine += string.trim().replaceFirstMapped(new RegExp('{([0-9]+?)}\$'), (match) {
+      _captureLiteral(int.parse(match.group(1)));
+      return '{$_literalId}';
+    }) + " ";
+  }
+
+  /// Prepares the capturing of a new literal.
+  void _captureLiteral(int length) {
+    _actualLiteralLength = length;
+    _currentLiteralLength = 0;
+    _literal = '';
+    _literalId++;
+    if(_actualLiteralLength > 0) {
+      _skipAnalysis = true;
+    }
   }
 
   /// Helper method to get values from (possibly inexistent) [Match] groups

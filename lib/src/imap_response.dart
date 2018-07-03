@@ -8,7 +8,7 @@ class ImapResponse {
   /// Status responses sent by the server (tagged and untagged).
   final Map<String, String> responseCodes;
   /// All untagged responses that are not OK/NO/BAD
-  final List<MapEntry<String, String>> untagged;
+  final Map<String, String> untagged;
   /// The full test response as sent by the server.
   final String fullResponse;
   /// Lines that couldn't be resolved automatically
@@ -30,7 +30,7 @@ class ImapResponse {
     return <String, dynamic>{
       'status': 'BAD',
       'responseCodes': <String, String>{},
-      'untagged': <MapEntry<String, String>>[],
+      'untagged': <String, String>{},
       'unrecognizedLines': <String>[],
       'fullResponse': '',
       'notices': <String>[],
