@@ -19,5 +19,13 @@ void main() {
       expect(ImapAnalyzer.stringToList("( one two three )"),
           ["one", "two", "three"]);
     });
+    test("Handles list without brackets", () {
+      expect(ImapAnalyzer.stringToList("one two three"),
+          ["one", "two", "three"]);
+    });
+    test("Handles list without brackets and spaces around", () {
+      expect(ImapAnalyzer.stringToList(" one two three "),
+          ["one", "two", "three"]);
+    });
   });
 }

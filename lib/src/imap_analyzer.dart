@@ -59,7 +59,7 @@ class ImapAnalyzer {
   /// Turns an imap list (one two three) into a dart list [one, two, three]
   static List<String> stringToList(String string) {
     string = string.trim();
-    Match match = new RegExp('^\\( *(.*?) *\\)\$').firstMatch(string);
+    Match match = new RegExp('^\\(? *(.*?) *\\)?\$').firstMatch(string);
     if (match == null) {
       return <String>[];
     }
