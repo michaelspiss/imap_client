@@ -56,19 +56,6 @@ class ImapAnalyzer {
     _registeredTags.add(tag);
   }
 
-  /// Turns an imap list (one two three) into a dart list [one, two, three]
-  static List<String> stringToList(String string) {
-    string = string.trim();
-    Match match = new RegExp('^\\(? *(.*?) *\\)?\$').firstMatch(string);
-    if (match == null) {
-      return <String>[];
-    }
-    return match.group(1).split(" ")
-      ..removeWhere((string) {
-        return string.isEmpty;
-      });
-  }
-
   /// Interprets server responses and calls specific handlers.
   ///
   /// Returns an [ImapResponse] via the completer, which contains command
@@ -194,21 +181,11 @@ class ImapAnalyzer {
       case 'FETCH':
         Map<String, String> attr = useTemp
             ? _getMapFromTemp()
-            : _getMapFromString(_getGroupValue(match, 11));
+            : ImapConverter.imapListToDartMap(_getGroupValue(match, 11));
         _client.fetchHandler
             ?.call(_client._selectedMailbox, match.group(9), attr);
         break;
     }
-  }
-
-  /// Turns a List (One Two Three Four) into a Map {One: Two, Three: Four}
-  Map<String, String> _getMapFromString(String string) {
-    List<String> parts = string.substring(1, string.length - 1).split(" ");
-    Map<String, String> map = new Map<String, String>();
-    for (int i = 0; i < parts.length; i++) {
-      map[parts[i]] = ++i < parts.length ? parts[i] : "";
-    }
-    return map;
   }
 
   /// Creates a map {a: b, c: d} from an imap list (a b c d) in temp. storage.

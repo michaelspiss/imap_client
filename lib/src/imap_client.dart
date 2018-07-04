@@ -184,20 +184,12 @@ class ImapClient {
     return _connectionState == 3;
   }
 
-  /// Converts a regular list to an imap list string
-  String _listToImapString(List<String> list) {
-    String listString = list.toString();
-    return '(' +
-        listString.substring(1, listString.length - 1).replaceAll(',', '') +
-        ')';
-  }
-
   /*
   Response code handlers
    */
 
   void _codeCapability(String capabilities) {
-    _serverCapabilities = ImapAnalyzer.stringToList(capabilities);
+    _serverCapabilities = ImapConverter.imapListToDartList(capabilities);
     _serverSupportedAuthMethods.clear();
     _serverCapabilities.removeWhere((item) {
       if (item.startsWith(RegExp('AUTH=', caseSensitive: false))) {
@@ -353,7 +345,7 @@ class ImapClient {
 
   /// Sends the STATUS command as defined in RFC 3501
   Future<ImapResponse> status(String mailbox, List<String> statusDataItems) {
-    String dataItems = _listToImapString(statusDataItems);
+    String dataItems = ImapConverter.dartListToImapList(statusDataItems);
     return sendCommand('STATUS "$mailbox" $dataItems');
   }
 
@@ -361,7 +353,8 @@ class ImapClient {
   Future<ImapResponse> append(String mailbox, String message,
       [String dateTime = "", List<String> flags]) {
     dateTime = dateTime.isEmpty ? "" : " " + dateTime;
-    String flagsString = flags == null ? "" : " " + _listToImapString(flags);
+    String flagsString = flags == null ? "" : " " +
+        ImapConverter.dartListToImapList(flags);
     Utf8Encoder encoder = new Utf8Encoder();
     List<int> convertedMessage = encoder.convert(message);
     int length = convertedMessage.length;
@@ -405,7 +398,7 @@ class ImapClient {
 
   /// Sends the FETCH command as defined in RFC 3501
   Future<ImapResponse> fetch(String sequenceSet, List<String> dataItemNames) {
-    String dataItems = _listToImapString(dataItemNames);
+    String dataItems = ImapConverter.dartListToImapList(dataItemNames);
     return sendCommand('FETCH $sequenceSet $dataItems');
   }
 

@@ -13,3 +13,5 @@ part 'src/imap_analyzer.dart';
 part 'src/auth_methods.dart';
 
 part 'src/imap_client.dart';
+
+part 'src/imap_converter.dart';
