@@ -74,10 +74,6 @@ class ImapAnalyzer {
   /// Returns an [ImapResponse] via the completer, which contains command
   /// specific responses plus the command completion status (OK/BAD/NO).
   void analyzeLine(String line) {
-    if (_isGreeting) {
-      _handleGreeting(line);
-      return;
-    }
     if (_skipAnalysis) {
       line = _addLineToLiteral(line);
       if (line.isEmpty) {
@@ -140,29 +136,13 @@ class ImapAnalyzer {
     _literals = <String>[];
   }
 
-  /// Handles the server greeting
-  void _handleGreeting(String response) {
-    RegExp matcher = new RegExp('^\\* (BYE|OK|PREAUTH)', caseSensitive: false);
-    Match match = matcher.firstMatch(response);
-    switch (match?.group(1)?.toUpperCase()) {
-      case 'OK':
-        _client._connectionState = ImapClient.stateConnected;
-        _isGreeting = false;
-        break;
-      case 'PREAUTH':
-        _client._connectionState = ImapClient.stateAuthenticated;
-        _isGreeting = false;
-        break;
-    }
-  }
-
   /// Handler for a standard tagged / untagged response
   void _handleStandardResponse(Match match) {
     bool isTagged = match.group(3) != '*';
-    String id = match.group(4);
-    String type = id == 'OK'
-        ? 'notices'
-        : id == 'NO' ? 'warnings' : id == 'BAD' ? 'errors' : '';
+    String id = match.group(4).toUpperCase();
+    String type = id == 'OK' ? 'notices'
+                : id == 'NO' ? 'warnings'
+                : id == 'BAD' ? 'errors' : '';
     if (type.isNotEmpty) {
       results[type].add(_getGroupValue(match, 7)); // reason for ok/bad/no
     } else {
@@ -172,16 +152,22 @@ class ImapAnalyzer {
       results['responseCodes'][_getGroupValue(match, 5).toUpperCase()] =
           _getGroupValue(match, 6);
     }
-    if (isTagged) {
+    if (isTagged || _isGreeting) {
       results['status'] = id;
       results['statusInfo'] = _getGroupValue(match, 7);
       _updates.add({
-        "tag": match.group(3),
+        "tag": _isGreeting ? "connect" : match.group(3),
         "state": "complete",
         "response": ImapResponse.fromMap(results)
       });
       _registeredTags.remove(match.group(3));
       results = ImapResponse.getResponseBlueprint();
+    }
+    if (_isGreeting) {
+      _isGreeting = false;
+      _client._connectionState = id == 'PREAUTH'
+          ? ImapClient.stateAuthenticated
+          : ImapClient.stateConnected;
     }
   }
 

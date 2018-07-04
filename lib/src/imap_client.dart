@@ -18,6 +18,16 @@ class ImapClient {
   /// Contains all supported authentication methods
   Map<String, Function> _authMethods = new Map();
 
+  /// Holds all server capabilities. This is updated automatically.
+  List<String> _serverCapabilities = <String>[];
+
+  List<String> get serverCapabilities => _serverCapabilities;
+
+  /// Holds the name of all authentication methods supported by the server
+  List<String> _serverSupportedAuthMethods = <String>[];
+
+  List<String> get serverSupportedAuthMethods => _serverSupportedAuthMethods;
+
   /// The current connection state
   int _connectionState = stateClosed;
 
@@ -34,11 +44,17 @@ class ImapClient {
 
   String get selectedMailbox => _selectedMailbox;
 
+  /// True, if the selected mailbox is connected to with read-write permissions
+  bool _mailboxIsReadWrite = false;
+
+  bool get mailboxIsReadWrite => _mailboxIsReadWrite;
+
   /// Handlers for specific (unsolicited) server responses.
   Function existsHandler;
   Function recentHandler;
   Function expungeHandler;
   Function fetchHandler;
+  Function alertHandler;
 
   ImapClient() {
     _connection = new ImapConnection();
@@ -47,21 +63,6 @@ class ImapClient {
     _lines.stream.listen(_analyzer.analyzeLine);
     setAuthMethod("plain", _authPlain);
     setAuthMethod("login", _authLogin);
-  }
-
-  /// Connects to [host] in [port], uses SSL and TSL if [secure] is true
-  ///
-  /// It's highly recommended to (a)wait for this to finish.
-  Future connect(String host, int port, bool secure) {
-    var completer = new Completer();
-    _analyzer._isGreeting = true;
-    _connection.connect(host, port, secure, _responseHandler, () {
-      _connectionState = stateClosed;
-      _selectedMailbox = '';
-    }).then((_) {
-      completer.complete();
-    });
-    return completer.future;
   }
 
   void _responseHandler(response) {
@@ -87,6 +88,10 @@ class ImapClient {
     return 'A' + (_tagCounter++).toString();
   }
 
+  /*
+  Inner methods
+   */
+
   /// Prepares tag for a new command
   ///
   /// Use the optional [tag] to use a specific tag and don't create a new one.
@@ -103,8 +108,8 @@ class ImapClient {
   /// [tag] is the used tag to listen for, [onContinue] allows for callbacks
   /// whenever there is a command continuation request. Returns a [Future] that
   /// indicates command completion (tagged response).
-  Future<ImapResponse> _prepareResponseStateListener(
-      String tag, Function onContinue) {
+  Future<ImapResponse> _prepareResponseStateListener(String tag,
+      [Function onContinue = null]) {
     var completer = new Completer<ImapResponse>();
     StreamSubscription subscription;
     subscription = _analyzer.updates.listen((responseState) {
@@ -120,6 +125,22 @@ class ImapClient {
     return completer.future;
   }
 
+  /// Handles all response codes that are meant for the client
+  void _handleResponseCodes(Map<String, String> responseCodes) {
+    responseCodes.forEach((String key, String value) {
+      key = key.toUpperCase();
+      if (key == 'CAPABILITY') {
+        _codeCapability(value);
+      } else if (key == 'ALERT') {
+        alertHandler(value);
+      } else if (key == 'READ-WRITE') {
+        _mailboxIsReadWrite = true;
+      } else if (key == 'READ-ONLY') {
+        _mailboxIsReadWrite = false;
+      }
+    });
+  }
+
   /// Sends a [command] to the server.
   ///
   /// A new [tag] is being created automatically if not given. [tag] MUST be a
@@ -131,10 +152,13 @@ class ImapClient {
       [Function onContinue = null, String tag = '']) {
     tag = _prepareTag(tag);
     Future<ImapResponse> completion =
-        _prepareResponseStateListener(tag, onContinue);
+      _prepareResponseStateListener(tag, onContinue);
     String uid = _commandUseUid ? "UID " : "";
     _commandUseUid = false;
     _connection.writeln('$tag $uid$command');
+    completion.then((response) {
+      _handleResponseCodes(response.responseCodes);
+    });
     return completion;
   }
 
@@ -169,12 +193,50 @@ class ImapClient {
   }
 
   /*
+  Response code handlers
+   */
+
+  void _codeCapability(String capabilities) {
+    _serverCapabilities = ImapAnalyzer.stringToList(capabilities);
+    _serverSupportedAuthMethods.clear();
+    _serverCapabilities.removeWhere((item) {
+      if (item.startsWith(RegExp('AUTH=', caseSensitive: false))) {
+        _serverSupportedAuthMethods.add(item.substring(5));
+        return true;
+      }
+      return false;
+    });
+  }
+
+  /*
    * COMMANDS
    */
 
+  /// Connects to [host] in [port], uses SSL and TSL if [secure] is true
+  ///
+  /// It's highly recommended to (a)wait for this to finish.
+  Future<ImapResponse> connect(String host, int port, bool secure) {
+    Future<ImapResponse> completion = _prepareResponseStateListener('connect');
+    _analyzer._isGreeting = true;
+    _connection.connect(host, port, secure, _responseHandler, () {
+      _connectionState = stateClosed;
+      _selectedMailbox = '';
+      _mailboxIsReadWrite = false;
+    });
+    completion.then((response) {
+      _handleResponseCodes(response.responseCodes);
+    });
+    return completion;
+  }
+
   /// Sends the CAPABILITY command as defined in RFC 3501
   Future<ImapResponse> capability() {
-    return sendCommand('CAPABILITY');
+    return sendCommand('CAPABILITY')
+      ..then((response) {
+        if (response.untagged.containsKey('CAPABILITY')) {
+          _codeCapability(response.untagged['CAPABILITY']);
+        }
+      });
   }
 
   /// Sends the NOOP command as defined in RFC 3501
@@ -202,7 +264,7 @@ class ImapClient {
     if (!clientSupportsAuth(authMethod)) {
       throw new UnsupportedError(
           "Authentication method \"$authMethod\" is not supported by this "
-          "client. You can implement it by using setAuthMethod().");
+              "client. You can implement it by using setAuthMethod().");
     }
 
     return sendCommand('AUTHENTICATE $authMethod', () {
@@ -238,6 +300,7 @@ class ImapClient {
   Future<ImapResponse> select(String mailbox) {
     _connectionState = stateAuthenticated;
     _selectedMailbox = '';
+    _mailboxIsReadWrite = false;
     Future<ImapResponse> future = sendCommand('SELECT "$mailbox"');
     future.then((ImapResponse res) {
       if (res.isOK()) {
@@ -323,6 +386,7 @@ class ImapClient {
       if (res.isOK()) {
         _connectionState = stateAuthenticated;
         _selectedMailbox = '';
+        _mailboxIsReadWrite = false;
       }
     });
     return future;
@@ -346,8 +410,8 @@ class ImapClient {
   }
 
   /// Sends the STORE command as defined in RFC 3501
-  Future<ImapResponse> store(
-      String sequenceSet, String dataItem, String dataValue) {
+  Future<ImapResponse> store(String sequenceSet, String dataItem,
+      String dataValue) {
     return sendCommand('STORE $sequenceSet $dataItem $dataValue');
   }
 
