@@ -34,7 +34,7 @@ class ImapAnalyzer {
   Stream get updates => _updates.stream;
 
   /// Holds results of the current tag's analysis data
-  Map<String, dynamic> results = ImapResponse.getResponseBlueprint();
+  Map<String, dynamic> _results = ImapResponse.getResponseBlueprint();
 
   /// Splits an incoming response line into "semantic parts"
   // Groups:                         1                      2     3           4             5       6                     7         8       9                   10                    11             12          13                   14
@@ -87,7 +87,7 @@ class ImapAnalyzer {
   void _handleLine(String line, [List<String> literals = null]) {
     Match match = _splitter.firstMatch(line);
     bool hasLiteral = _matchHasGroup(match, 14); // checks for tailing literal
-    results['fullResponse'] += line;
+    _results['fullResponse'] += line;
     String type = _getTypeFromMatch(match);
     if (hasLiteral) {
       _setTemp(line, match);
@@ -105,7 +105,7 @@ class ImapAnalyzer {
     } else {
       _tempLine.isNotEmpty
           ? _addStringToTempLine(line)
-          : results['unrecognizedLines'].add(line);
+          : _results['unrecognizedLines'].add(line);
     }
   }
 
@@ -144,24 +144,24 @@ class ImapAnalyzer {
                 : id == 'NO' ? 'warnings'
                 : id == 'BAD' ? 'errors' : '';
     if (type.isNotEmpty) {
-      results[type].add(_getGroupValue(match, 7)); // reason for ok/bad/no
+      _results[type].add(_getGroupValue(match, 7)); // reason for ok/bad/no
     } else {
-      results['untagged'][id.toUpperCase()] = _getGroupValue(match, 7);
+      _results['untagged'][id.toUpperCase()] = _getGroupValue(match, 7);
     }
     if (_matchHasGroup(match, 5)) {
-      results['responseCodes'][_getGroupValue(match, 5).toUpperCase()] =
+      _results['responseCodes'][_getGroupValue(match, 5).toUpperCase()] =
           _getGroupValue(match, 6);
     }
     if (isTagged || _isGreeting) {
-      results['status'] = id;
-      results['statusInfo'] = _getGroupValue(match, 7);
+      _results['status'] = id;
+      _results['statusInfo'] = _getGroupValue(match, 7);
       _updates.add({
         "tag": _isGreeting ? "connect" : match.group(3),
         "state": "complete",
-        "response": ImapResponse.fromMap(results)
+        "response": ImapResponse.fromMap(_results)
       });
       _registeredTags.remove(match.group(3));
-      results = ImapResponse.getResponseBlueprint();
+      _results = ImapResponse.getResponseBlueprint();
     }
     if (_isGreeting) {
       _isGreeting = false;
