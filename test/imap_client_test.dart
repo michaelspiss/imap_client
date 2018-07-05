@@ -11,6 +11,7 @@ class TestServer {
   Socket client;
   Future hasConnection;
   Completer _completer;
+  bool sendOKGreeting = true;
 
   TestServer() {
     _completer = new Completer();
@@ -22,6 +23,10 @@ class TestServer {
         _completer.complete();
         _completer = new Completer();
         hasConnection = _completer.future;
+        if(sendOKGreeting) {
+          client.write("* OK [CAPABILITY IMAP4rev1 IDLE AUTH=PLAIN]\r\n");
+        }
+        sendOKGreeting = true;
       });
     });
   }
@@ -30,12 +35,16 @@ class TestServer {
 TestServer server = new TestServer();
 
 void main() {
+  ImapClient client;
+
+  setUp(() {
+    client = new ImapClient();
+  });
+
   group('Server greetings', ()
   {
-    ImapClient client;
-
     setUp(() {
-      client = new ImapClient();
+      server.sendOKGreeting = false;
     });
 
     test('Client connect is complete when server sends greeting', () {
@@ -67,13 +76,38 @@ void main() {
       });
     });
     test('Client sets state to closed after BYE and disconnect', () {
-      client.connect(host, port, false).then((_) {
+      expect(client.connect(host, port, false).then((_) {
         expect(client.connectionState, ImapClient.stateClosed);
-      });
+      }), completes);
       server.hasConnection.then((_) {
         server.client.write("* BYE\r\n");
         server.client.close();
       });
+    });
+  });
+
+  group('Capability tests', () {
+    test("Capabilites are recorded when sent with response", () async {
+      await client.connect(host, port, false);
+      expect(client.serverCapabilities, ["IMAP4rev1", "IDLE"]);
+    });
+    test("Auth methods are recorded when sent with response", () async {
+      await client.connect(host, port, false);
+      expect(client.serverSupportedAuthMethods, ["PLAIN"]);
+    });
+    test("Client does update capabilities automatically on command", () async {
+      await client.connect(host, port, false);
+      client.capability().then((_) {
+        expect(client.serverCapabilities, ["IMAP4rev1", "something"]);
+      });
+      server.client.write("* CAPABILITY IMAP4rev1 something\r\nA0 OK\r\n");
+    });
+    test("Client does update authentication methods on command", () async {
+      await client.connect(host, port, false);
+      client.capability().then((_) {
+        expect(client.serverSupportedAuthMethods, []);
+      });
+      server.client.write("* CAPABILITY IMAP4rev1 something\r\nA0 OK\r\n");
     });
   });
 }
