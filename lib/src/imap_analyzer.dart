@@ -168,22 +168,23 @@ class ImapAnalyzer {
   ///
   /// Match from sizeStatusUpdate regexp [_splitter]
   void _handleSizeStatusUpdate(Match match, [bool useTemp = false]) {
+    int messageNumber = int.parse(match.group(9));
     switch (match.group(10).toUpperCase()) {
       case 'EXISTS':
-        _client.existsHandler?.call(_client._selectedMailbox, match.group(9));
+        _client.existsHandler?.call(_client._selectedMailbox, messageNumber);
         break;
       case 'RECENT':
-        _client.recentHandler?.call(_client._selectedMailbox, match.group(9));
+        _client.recentHandler?.call(_client._selectedMailbox, messageNumber);
         break;
       case 'EXPUNGE':
-        _client.expungeHandler?.call(_client._selectedMailbox, match.group(9));
+        _client.expungeHandler?.call(_client._selectedMailbox, messageNumber);
         break;
       case 'FETCH':
         Map<String, String> attr = useTemp
             ? _getMapFromTemp()
             : ImapConverter.imapListToDartMap(_getGroupValue(match, 11));
         _client.fetchHandler
-            ?.call(_client._selectedMailbox, match.group(9), attr);
+            ?.call(_client._selectedMailbox, messageNumber, attr);
         break;
     }
   }
