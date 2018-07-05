@@ -25,12 +25,13 @@ class ImapAnalyzer {
   int _currentLiteralLength;
   int _literalId = -1; // to make it 0 indexed.
 
+  /// Controls [updates]
+  StreamController _updates = new StreamController.broadcast();
+
   /// Sends command status updates back to the client
   ///
   /// {"tag": tag, "status": "continue", "info": "foo"} or
   /// {"tag": tag, "status": "complete", "response": [ImapResponse]}
-  StreamController _updates = new StreamController.broadcast();
-
   Stream get updates => _updates.stream;
 
   /// Holds results of the current tag's analysis data

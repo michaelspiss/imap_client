@@ -43,6 +43,7 @@ class ImapResponse {
       this.errors,
       this.literals});
 
+  /// Returns a blueprint of the map used for the [fromMap] method.
   static Map<String, dynamic> getResponseBlueprint() {
     return <String, dynamic>{
       'status': 'BAD',
@@ -60,8 +61,9 @@ class ImapResponse {
   /// Creates a new ImapResponse from a map.
   ///
   /// The map must use the same keys as the [ImapResponse] and their associated
-  /// data types. Missing values are replaced by empty defaults.
-  /// A missing "status" indicates an error!
+  /// data types. A blueprint can be obtained from [getResponseBlueprint].
+  /// Missing values are replaced by empty defaults. A missing "status"
+  /// however, indicates an error!
   static ImapResponse fromMap(Map<String, dynamic> map) {
     Map<String, dynamic> responses = getResponseBlueprint();
     responses.addAll(map);
@@ -78,5 +80,6 @@ class ImapResponse {
         literals: responses['literals']);
   }
 
+  /// Checks if the response status is OK (successful completion)
   bool isOK() => status.toUpperCase() == 'OK';
 }

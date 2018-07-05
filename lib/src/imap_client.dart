@@ -5,11 +5,20 @@ class ImapClient {
 
   ImapAnalyzer _analyzer;
 
-  /// All possible connection states
+  // All possible connection states
+  /// "There is no connection to a server"
   static const stateClosed = -1;
+
+  /// There is a connection, but the client is not authenticated
   static const stateConnected = 0;
+
+  /// Client is authenticated to the server
   static const stateAuthenticated = 1;
+
+  /// The client is authenticated and has currently opened a mailbox
   static const stateSelected = 2;
+
+  /// The client has opened a mailbox and is listening for changes
   static const stateIdle = 3;
 
   /// Increases every time a new tag is requested, see [requestNewTag]
@@ -49,11 +58,41 @@ class ImapClient {
 
   bool get mailboxIsReadWrite => _mailboxIsReadWrite;
 
-  /// Handlers for specific (unsolicited) server responses.
+  // Handlers for specific (unsolicited) server responses.
+  /// Handler for EXISTS responses. Must take mailbox name and message number
+  ///
+  /// ```
+  /// void handler(String mailboxName, int messageNumber) { ... }
+  /// ```
   Function existsHandler;
+
+  /// Handler for RECENT responses. Must take mailbox name and message number
+  ///
+  /// ```
+  /// void handler(String mailboxName, int messageNumber) { ... }
+  /// ```
   Function recentHandler;
+
+  /// Handler for EXPUNGE responses. Must take mailbox name and message number
+  ///
+  /// ```
+  /// void handler(String mailboxName, int messageNumber) { ... }
+  /// ```
   Function expungeHandler;
+
+  /// Handler for FETCH responses. Must take mailbox name, message number, data
+  ///
+  /// ```
+  /// void handler(String mailboxName, int messageNumber,
+  ///    Map<String, String> attributes) { ... }
+  /// ```
   Function fetchHandler;
+
+  /// Handles ALERT response codes. Must take alert info
+  ///
+  /// ```
+  /// void handler(String info) { ... }
+  /// ```
   Function alertHandler;
 
   ImapClient() {
@@ -65,6 +104,7 @@ class ImapClient {
     setAuthMethod("login", _authLogin);
   }
 
+  /// Splits blocks into single lines and passes them to the analyzer
   void _responseHandler(response) {
     response = new String.fromCharCodes(response);
     List<String> lines = response.split(new RegExp('(?=\r\n|\n|\r)'));
@@ -219,7 +259,13 @@ class ImapClient {
     return completion;
   }
 
-  /// Sends the CAPABILITY command as defined in RFC 3501
+  /// Imap command. Updates the capability and supported auth methods lists.
+  ///
+  /// This should only be used right after the connect and right after the
+  /// authentication. It should not be used if it was already updated via
+  /// a response code. Check the [ImapResponse] of both [connect] and
+  /// [authenticate]/[login] for already updated lists.
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> capability() {
     return sendCommand('CAPABILITY')
       ..then((response) {
@@ -229,21 +275,28 @@ class ImapClient {
       });
   }
 
-  /// Sends the NOOP command as defined in RFC 3501
+  /// Does nothing
+  ///
+  /// Can be used to prevent an automatic disconnect from the server due to
+  /// inactivity and also to periodically fetch mailbox changes.
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> noop() {
     return sendCommand('NOOP');
   }
 
-  /// Sends the LOGOUT command as defined in RFC 3501
+  /// Ends the session, server closes connection
+  ///
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> logout() {
     _connectionState = stateClosed;
     return sendCommand('LOGOUT');
   }
 
-  /// Sends the AUTHENTICATE command as defined in RFC 3501
+  /// Authenticates the user via the given authentication mechanism
   ///
   /// Throws an [UnsupportedError] if a by the client unsupported auth method
   /// is used.
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> authenticate(String username, String password,
       [String authMethod = "plain"]) {
     authMethod = authMethod.toLowerCase();
@@ -263,22 +316,31 @@ class ImapClient {
     });
   }
 
-  /// Sends the AUTHENTICATE command as defined in RFC 3501
+  /// Upgrades an insecure connection to a TLS encrypted one. DEPRECATED!
   ///
   /// Deprecated by RFC 8314, use a secure connection if possible.
-  /// TLS negotiation is not part of this package. It begins *after* command
-  /// completion, no further commands must be issued while the negotiation is
-  /// not complete. Returns the [ImapConnection] so a communication with the
-  /// server is possible to implement.
+  /// TLS negotiation is not part of this package. It begins right *after*
+  /// command completion, no further commands must be issued while the
+  /// negotiation is not complete. Returns the [ImapConnection] so a
+  /// communication with the server is possible to implement.
   /// Again, this method should not be used anymore!
+  /// Defined in RFC 3501 (Imap v4rev1)
   @deprecated
   ImapConnection starttls() {
     sendCommand('STARTTLS');
     return _connection;
   }
 
-  /// Sends the LOGIN command as defined in RFC 3501
+  /// Logs th user in via plaintext username and password
+  ///
+  /// This method can be forbidden by the server by having the LOGINDISABLED
+  /// capability. If this method is still used, it will throw an
+  /// [UnsupportedError].
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> login(String username, String password) {
+    if(_serverCapabilities.contains("LOGINDISABLED")) {
+      throw new UnsupportedError("LOGIN is forbidden by the server.");
+    }
     return sendCommand('LOGIN "$username" "$password"');
   }
 
@@ -286,7 +348,12 @@ class ImapClient {
   Commands - Authenticated state only
    */
 
-  /// Sends the SELECT command as defined in RFC 3501
+  /// Selects the mailbox with the given name
+  ///
+  /// On select, it first deselects the current mailbox. If the select fails,
+  /// it stays in the unselected state. Please check the [mailboxIsReadWrite]
+  /// attribute to see if the client is allowed to modify the mailbox.
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> select(String mailbox) {
     _connectionState = stateAuthenticated;
     _selectedMailbox = '';
@@ -296,58 +363,108 @@ class ImapClient {
       if (res.isOK()) {
         _connectionState = stateSelected;
         _selectedMailbox = mailbox;
+        _mailboxIsReadWrite = !res.responseCodes.containsKey('READ-ONLY');
       }
     });
     return future;
   }
 
-  /// Sends the EXAMINE command as defined in RFC 3501
+  /// Does the same as [select], but the selected mailbox is read-only
+  ///
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> examine(String mailbox) {
     return sendCommand('EXAMINE "$mailbox"');
   }
 
-  /// Sends the CREATE command as defined in RFC 3501
+  /// Creates a new mailbox with the given name.
+  ///
+  /// OK on success, NO if something went wrong. To create a hierarchy, the
+  /// name must include the hierarchy separator as returned by [list].
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> create(String mailbox) {
     return sendCommand('CREATE "$mailbox"');
   }
 
-  /// Sends the DELETE command as defined in RFC 3501
+  /// Deletes the mailbox with the given name and all mails inside.
+  ///
+  /// This does not remove inferior mailboxes in their hierarchy.
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> delete(String mailbox) {
     return sendCommand('DELETE "$mailbox"');
   }
 
-  /// Sends the RENAME command as defined in RFC 3501
+  /// Renames a mailbox
+  ///
+  /// This does also rename inferior mailboxes if part of a hierarchy.
+  /// (foo -> bar, foo/zap -> bar/zap). Renaming INBOX moves all messages
+  /// inside to the new mailbox, leaving INBOX empty. If INBOX has inferiors,
+  /// those are unaffected.
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> rename(String mailbox, String newMailboxName) {
     return sendCommand('RENAME "$mailbox" "$newMailboxName"');
   }
 
-  /// Sends the SUBSCRIBE command as defined in RFC 3501
+  /// Adds a mailbox to the "active/subscribed" list as returned by [lsub]
+  ///
+  /// The server may check for its existence, but does not automatically remove
+  /// it from this list should it be removed.
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> subscribe(String mailbox) {
     return sendCommand('SUBSCRIBE "$mailbox"');
   }
 
-  /// Sends the UNSUBSCRIBE command as defined in RFC 3501
+  /// Removes a mailbox from the "active/subscribed" list as returned by [lsub]
+  ///
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> unsubscribe(String mailbox) {
     return sendCommand('UNSUBSCRIBE "$mailbox"');
   }
 
-  /// Sends the LIST command as defined in RFC 3501
+  /// Returns a subset of mailbox names available to the client.
+  ///
+  /// An empty ("") [referenceName] indicates, that the returned names must be
+  /// interpretable by [select]. The returned names must match the
+  /// [mailboxName] pattern, which can contain wildcards (% and *).
+  /// [referenceName] is a mailbox name or a level of mailbox hierarchy. An
+  /// empty [mailboxName] returns the hierarchy delimiter or NIL if there is
+  /// none. # is a breakout character if the server implements the namespace
+  /// convention. Wildcards: * matches zero or more characters, whereas %
+  /// matches all characters except th hierarchy delimiter.
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> list(String referenceName, String mailboxName) {
     return sendCommand('LIST "$referenceName" "$mailboxName"');
   }
 
-  /// Sends the LSUB command as defined in RFC 3501
+  /// Returns a subset of the "active/subscribed" list the same way as [list]
+  ///
+  /// The returned list may have different flags, in this case [list] is more
+  /// trustworthy. If "foo/bar" is subscribed, but the % wildcard is used, foo
+  /// is returned with the \Noselect attribute.
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> lsub(String referenceName, String mailboxName) {
     return sendCommand('LSUB "$referenceName" "$mailboxName"');
   }
 
-  /// Sends the STATUS command as defined in RFC 3501
+  /// Requests the status of a mailbox without changing the currently selected
+  ///
+  /// This also does not affect the state of any messages inside the mailbox.
+  /// This is an alternative to a second connection and running [examine].
+  /// Status may be slow and resource intensive and thus should not not be used
+  /// on the currently selected mailbox.
+  /// Status data items: MESSAGES, RECENT, UIDNEXT, UIDVALIDITY, UNSEEN
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> status(String mailbox, List<String> statusDataItems) {
     String dataItems = ImapConverter.dartListToImapList(statusDataItems);
     return sendCommand('STATUS "$mailbox" $dataItems');
   }
 
-  /// Sends the APPEND command as defined in RFC 3501
+  /// Appends a message to the end of a mailbox with the given flags (+ \Recent)
+  ///
+  /// If the [dateTime] string is set, it will also be set in the new message.
+  /// If the append is unsuccessful, the state before the attempt is restored.
+  /// If the mailbox does not exist, an error is returned. If it could be
+  /// created, a TRYCREATE response code is sent.
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> append(String mailbox, String message,
       [String dateTime = "", List<String> flags]) {
     dateTime = dateTime.isEmpty ? "" : " " + dateTime;
@@ -365,12 +482,18 @@ class ImapClient {
   Commands - Selected state only
    */
 
-  /// Sends the CHECK command as defined in RFC 3501
+  /// The same as [noop], may trigger housekeeping operations on the server side
+  ///
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> check() {
     return sendCommand('CHECK');
   }
 
-  /// Sends the CLOSE command as defined in RFC 3501
+  /// Closes a mailbox and goes back to unselected state.
+  ///
+  /// Also removes all messages with the \Deleted flag in the selected mailbox.
+  /// [select]/[examine] don't need a close when changing the mailbox.
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> close() {
     Future<ImapResponse> future = sendCommand('CLOSE');
     future.then((ImapResponse res) {
@@ -383,42 +506,81 @@ class ImapClient {
     return future;
   }
 
-  /// Sends the EXPUNGE command as defined in RFC 3501
+  /// Removes all messages that have the \Deleted flag in the selected mailbox.
+  ///
+  /// Responds with an untagged EXPUNGE for each deleted message with its
+  /// relative id (position) -> EXPUNGE 3, EXPUNGE 3, EXPUNGE 4 will actually
+  /// remove messages 3,4 and 6.
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> expunge() {
     return sendCommand('EXPUNGE');
   }
 
-  /// Sends the SEARCH command as defined in RFC 3501
+  /// Returns a list of messages that match the [searchCriteria].
+  ///
+  /// [charset] can be used to define a specific encoding that should be used.
+  /// If the charset is not supported, the response code [BADCHARSET] will be
+  /// sent along with a NO response.
+  /// Matching is case insensitive. Please look at the rfc for a full list of
+  /// defined search keys.
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> search(String searchCriteria, [String charset = ""]) {
     charset = charset.isEmpty ? "" : "CHARSET " + charset + " ";
     return sendCommand('SEARCH $charset$searchCriteria');
   }
 
-  /// Sends the FETCH command as defined in RFC 3501
+  /// Returns message data to the client.
+  ///
+  /// Matching is case insensitive. Please look at the rfc for a full list of
+  /// defined message data item names.
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> fetch(String sequenceSet, List<String> dataItemNames) {
     String dataItems = ImapConverter.dartListToImapList(dataItemNames);
     return sendCommand('FETCH $sequenceSet $dataItems');
   }
 
-  /// Sends the STORE command as defined in RFC 3501
+  /// Alters data associated with a message
+  ///
+  /// Normally, the updated value is returned with an untagged fetch, but this
+  /// can be disabled with .SILENT right after the item data name.
+  /// Data item names:
+  /// FLAGS <flag list> - replaces all flags other than \Recent
+  /// +FLAGS <flag list> - adds flags
+  /// -FLAGS <flag list> - removes flags
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> store(String sequenceSet, String dataItem,
       String dataValue) {
     return sendCommand('STORE $sequenceSet $dataItem $dataValue');
   }
 
-  /// Sends the COPY command as defined in RFC 3501
+  /// Copies the messages specified to another mailbox
+  ///
+  /// Flags and internaldate should be preserved, \Recent should be set.
+  /// If the mailbox does not exist TRYCREATE is sent as response code along
+  /// a NO response.
+  /// Defined in RFC 3501 (Imap v4rev1)
   Future<ImapResponse> copy(String sequenceSet, String mailbox) {
     return sendCommand('COPY $sequenceSet $mailbox');
   }
 
-  /// Sends next command with prepended "UID"
+  /// Converts message sequence numbers to unique identifiers.
+  ///
+  /// Can be used with [copy], [fetch] or [store] -> sequence numbers are now
+  /// unique identifiers ([fetch] still sends message sequence numbers, but with
+  /// additional "UID"). [search] returns UIDs instead of sequence numbers, but
+  /// command arguments do not change.
+  /// Defined in RFC 3501 (Imap v4rev1)
   ImapClient uid() {
     _commandUseUid = true;
     return this;
   }
 
-  /// Sends the IDLE command as defined in RFC 2177
-  Future<ImapResponse> idle([Duration duration = const Duration(minutes: 30)]) {
+  /// Listens for changes to the currently selected mailbox
+  ///
+  /// To make the server aware that this client is still active and prevent a
+  /// timeout, idle should be re-issued at least every 29 minutes.
+  /// Defined in RFC 2177 (IMAP4 IDLE command)
+  Future<ImapResponse> idle([Duration duration = const Duration(minutes: 29)]) {
     int oldState = _connectionState;
     new Timer(duration, endIdle);
     return sendCommand('IDLE', () {
@@ -429,7 +591,7 @@ class ImapClient {
       });
   }
 
-  /// Ends IDLE session
+  /// Ends the IDLE command and lets it return to the previous state
   void endIdle() {
     if (_connectionState == stateIdle) {
       _connection.writeln('DONE');
