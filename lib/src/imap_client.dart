@@ -3,6 +3,9 @@ part of ImapClient;
 class ImapClient {
   ImapConnection _connection;
 
+  /// Direct access to the connection. Might be needed for custom commands.
+  ImapConnection get connection => _connection;
+
   ImapAnalyzer _analyzer;
 
   // All possible connection states

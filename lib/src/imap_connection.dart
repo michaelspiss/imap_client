@@ -2,7 +2,10 @@ part of ImapClient;
 
 class ImapConnection {
   /// The socket used for communication
-  Socket _connection;
+  Socket _socket;
+
+  /// Direct access to the socket
+  Socket get socket => _socket;
 
   /// Indicates whether the connection is currently open or not
   bool _isOpen = false;
@@ -22,11 +25,11 @@ class ImapConnection {
         secure ? SecureSocket.connect(host, port) : Socket.connect(host, port);
 
     return futureSocket.then((socket) {
-      _connection = socket;
+      _socket = socket;
       _isOpen = true;
-      _connection.listen(responseHandler, cancelOnError: true, onDone: () {
+      _socket.listen(responseHandler, cancelOnError: true, onDone: () {
         onDoneCallback();
-        _connection.destroy();
+        _socket.destroy();
         _isOpen = false;
       });
     });
@@ -39,7 +42,7 @@ class ImapConnection {
   void writeln([Object obj = ""]) {
     if (_isOpen) {
       // MUST end with CRLF [RFC3501], a simple writeln() does not satisfy that
-      _connection.write(obj.toString() + '\r\n');
+      _socket.write(obj.toString() + '\r\n');
     } else {
       throw new SocketException('Socket is closed.');
     }
