@@ -146,8 +146,9 @@ class ImapClient {
   /// Prepares response state change listeners for a new command
   ///
   /// [tag] is the used tag to listen for, [onContinue] allows for callbacks
-  /// whenever there is a command continuation request. Returns a [Future] that
-  /// indicates command completion (tagged response).
+  /// whenever there is a command continuation request. Callbacks must take
+  /// a string (additional info sent by the client) as parameter.
+  /// Returns a [Future] that indicates command completion (tagged response).
   Future<ImapResponse> _prepareResponseStateListener(String tag,
       [Function onContinue = null]) {
     var completer = new Completer<ImapResponse>();
@@ -158,7 +159,7 @@ class ImapClient {
           subscription.cancel();
           completer.complete(responseState['response']);
         } else if (responseState['state'] == 'continue') {
-          onContinue();
+          onContinue?.call(responseState['info']);
         }
       }
     });
@@ -310,7 +311,7 @@ class ImapClient {
               "client. You can implement it by using setAuthMethod().");
     }
 
-    return sendCommand('AUTHENTICATE $authMethod', () {
+    return sendCommand('AUTHENTICATE $authMethod', (String info) {
       _authMethods[authMethod](
           _connection, bytes_username, bytes_password, iteration);
     });
@@ -473,9 +474,10 @@ class ImapClient {
     Utf8Encoder encoder = new Utf8Encoder();
     List<int> convertedMessage = encoder.convert(message);
     int length = convertedMessage.length;
-    return sendCommand('APPEND "$mailbox"$flagsString$dateTime {$length}', () {
-      _connection.writeln(message);
-    });
+    return sendCommand('APPEND "$mailbox"$flagsString$dateTime {$length}',
+            (String info) {
+          _connection.writeln(message);
+        });
   }
 
   /*
@@ -583,7 +585,7 @@ class ImapClient {
   Future<ImapResponse> idle([Duration duration = const Duration(minutes: 29)]) {
     int oldState = _connectionState;
     new Timer(duration, endIdle);
-    return sendCommand('IDLE', () {
+    return sendCommand('IDLE', (String info) {
       _connectionState = stateIdle;
     })
       ..then((_) {
