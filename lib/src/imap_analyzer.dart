@@ -1,6 +1,7 @@
 part of ImapClient;
 
-class ImapAnalyzer {
+/// Holds the logic for classifying lines and acting on them.
+class _ImapAnalyzer {
   /// The [ImapClient] instance that created this instance
   ImapClient _client;
 
@@ -31,11 +32,11 @@ class ImapAnalyzer {
   /// Sends command status updates back to the client
   ///
   /// {"tag": tag, "status": "continue", "info": "foo"} or
-  /// {"tag": tag, "status": "complete", "response": [ImapResponse]}
+  /// {"tag": tag, "status": "complete", "response": [_ImapResponse]}
   Stream get updates => _updates.stream;
 
   /// Holds results of the current tag's analysis data
-  Map<String, dynamic> _results = ImapResponse.getResponseBlueprint();
+  Map<String, dynamic> _results = _ImapResponse.getResponseBlueprint();
 
   /// Splits an incoming response line into "semantic parts"
   // Groups:                         1                      2     3           4             5       6                     7         8       9                   10                    11             12          13                   14
@@ -43,7 +44,7 @@ class ImapAnalyzer {
       caseSensitive: false);
 
   /// [client] must be the instance the analyser was instantiated in
-  ImapAnalyzer(ImapClient client) {
+  _ImapAnalyzer(ImapClient client) {
     _client = client;
   }
 
@@ -58,7 +59,7 @@ class ImapAnalyzer {
 
   /// Interprets server responses and calls specific handlers.
   ///
-  /// Returns an [ImapResponse] via the completer, which contains command
+  /// Returns an [_ImapResponse] via the completer, which contains command
   /// specific responses plus the command completion status (OK/BAD/NO).
   void analyzeLine(String line) {
     if (_skipAnalysis) {
@@ -145,10 +146,10 @@ class ImapAnalyzer {
       _updates.add({
         "tag": _isGreeting ? "connect" : match.group(3),
         "state": "complete",
-        "response": ImapResponse.fromMap(_results)
+        "response": _ImapResponse.fromMap(_results)
       });
       _registeredTags.remove(match.group(3));
-      _results = ImapResponse.getResponseBlueprint();
+      _results = _ImapResponse.getResponseBlueprint();
     }
     if (_isGreeting) {
       _isGreeting = false;

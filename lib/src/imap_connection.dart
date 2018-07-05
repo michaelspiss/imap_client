@@ -1,6 +1,6 @@
 part of ImapClient;
 
-/// A [Socket] wrapper. Holds imap specific methods.
+/// A [Socket] wrapper. Holds methods tailored to imap's needs.
 class ImapConnection {
   /// The socket used for communication
   Socket _socket;

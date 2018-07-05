@@ -1,5 +1,6 @@
 part of ImapClient;
 
+/// A class containing static methods to convert between imap and dart list/map
 class ImapConverter {
 
   /// Converts a regular list to a parenthesized imap list

@@ -1,6 +1,6 @@
 part of ImapClient;
 
-class ImapResponse {
+class _ImapResponse {
   /// The command completion status (OK/NO - error/BAD - command invalid)
   final String status;
 
@@ -31,7 +31,7 @@ class ImapResponse {
   /// Holds all literals sent by the server
   final Map<String, String> literals;
 
-  ImapResponse(
+  _ImapResponse(
       {this.status,
       this.statusInformation,
       this.responseCodes,
@@ -60,14 +60,14 @@ class ImapResponse {
 
   /// Creates a new ImapResponse from a map.
   ///
-  /// The map must use the same keys as the [ImapResponse] and their associated
+  /// The map must use the same keys as the [_ImapResponse] and their associated
   /// data types. A blueprint can be obtained from [getResponseBlueprint].
   /// Missing values are replaced by empty defaults. A missing "status"
   /// however, indicates an error!
-  static ImapResponse fromMap(Map<String, dynamic> map) {
+  static _ImapResponse fromMap(Map<String, dynamic> map) {
     Map<String, dynamic> responses = getResponseBlueprint();
     responses.addAll(map);
-    return new ImapResponse(
+    return new _ImapResponse(
         status: responses['status'],
         statusInformation: responses['statusInformation'],
         responseCodes: responses['responseCodes'],
