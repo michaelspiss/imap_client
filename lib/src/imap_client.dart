@@ -126,6 +126,18 @@ class ImapClient {
     _authMethods[methodName.toLowerCase()] = handler;
   }
 
+  /// Returns if the server has a certain capability.
+  ///
+  /// It automatically gets the list if it isn't loaded yet.
+  bool serverHasCapability(String name) {
+    if(_serverCapabilities.isEmpty) {
+      capability().then((_) {
+        return _serverCapabilities.contains(name.toUpperCase());
+      });
+    }
+    return _serverCapabilities.contains(name.toUpperCase());
+  }
+
   /// Generates a new unique tag
   String requestNewTag() {
     return 'A' + (_tagCounter++).toString();
@@ -588,8 +600,13 @@ class ImapClient {
   ///
   /// To make the server aware that this client is still active and prevent a
   /// timeout, idle should be re-issued at least every 29 minutes.
+  /// Throws an [UnsupportedError] if the server does not support the idle
+  /// command.
   /// Defined in RFC 2177 (IMAP4 IDLE command)
   Future<ImapResponse> idle([Duration duration = const Duration(minutes: 29)]) {
+    if(!serverHasCapability("IDLE")) {
+      throw new UnsupportedError("Server does not support the idle command");
+    }
     int oldState = _connectionState;
     new Timer(duration, endIdle);
     return sendCommand('IDLE', (String info) {
