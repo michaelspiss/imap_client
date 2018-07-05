@@ -20,6 +20,10 @@ class ImapConverter {
   }
 
   /// Turns an imap list (one two three) into a dart list [one, two, three]
+  ///
+  /// Throws an [ArgumentError] if the string is not a valid imap list.
+  /// Valid lists are: List with parenthesis: " (one two three )" or without:
+  /// " one two three"  - additional whitespaces inside or around are ignored.
   static List<String> imapListToDartList(String string) {
     string = string.trim();
     Match match = new RegExp('^\\(? *([^()\r\n]*?) *\\)?\$').firstMatch(
@@ -34,6 +38,9 @@ class ImapConverter {
   }
 
   /// Turns a List (One Two Three Four) into a Map {One: Two, Three: Four}
+  ///
+  /// Throws an [ArgumentError] if the string is not a valid list. See
+  /// [imapListToDartList] for examples of valid lists.
   static Map<String, String> imapListToDartMap(String string) {
     List<String> parts = imapListToDartList(string);
     Map<String, String> map = <String, String>{};
