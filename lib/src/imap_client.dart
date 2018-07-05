@@ -132,7 +132,7 @@ class ImapClient {
       if (key == 'CAPABILITY') {
         _codeCapability(value);
       } else if (key == 'ALERT') {
-        alertHandler(value);
+        alertHandler?.call(value);
       } else if (key == 'READ-WRITE') {
         _mailboxIsReadWrite = true;
       } else if (key == 'READ-ONLY') {
