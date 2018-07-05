@@ -22,9 +22,10 @@ class ImapConverter {
   /// Turns an imap list (one two three) into a dart list [one, two, three]
   static List<String> imapListToDartList(String string) {
     string = string.trim();
-    Match match = new RegExp('^\\(? *(.*?) *\\)?\$').firstMatch(string);
+    Match match = new RegExp('^\\(? *([^()\r\n]*?) *\\)?\$').firstMatch(
+        string);
     if (match == null) {
-      return <String>[];
+      throw new ArgumentError("The string given is not a vaild imap list.");
     }
     return match.group(1).split(" ")
       ..removeWhere((string) {

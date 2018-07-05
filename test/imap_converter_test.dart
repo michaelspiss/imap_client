@@ -27,5 +27,9 @@ void main() {
       expect(ImapConverter.imapListToDartList(" one two three "),
           ["one", "two", "three"]);
     });
+    test("Throws an error if the argument is not a valid imap list", () {
+      expect(() => ImapConverter.imapListToDartList(
+          "not ( a valid ) list"), throwsArgumentError);
+    });
   });
 }
