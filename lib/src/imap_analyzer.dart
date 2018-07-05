@@ -152,9 +152,9 @@ class ImapAnalyzer {
     }
     if (_isGreeting) {
       _isGreeting = false;
-      _client._connectionState = id == 'PREAUTH'
-          ? ImapClient.stateAuthenticated
-          : ImapClient.stateConnected;
+      _client._connectionState = id == 'PREAUTH' ? ImapClient.stateAuthenticated
+                               : id == 'BYE' ? ImapClient.stateClosed
+                               : ImapClient.stateConnected;
     }
   }
 
