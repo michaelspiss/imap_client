@@ -207,18 +207,22 @@ class ImapClient {
   Helper methods
    */
 
+  /// Checks if the client is in the "connected" or a higher state
   bool isConnected() {
     return _connectionState >= 0;
   }
 
+  /// Checks if the client is in the "authenticated" or a higher state
   bool isAuthenticated() {
     return _connectionState >= 1;
   }
 
+  /// Checks if the client is in the "selected" state
   bool isSelected() {
     return _connectionState == 2;
   }
 
+  /// Checks if the client is currently in the "idle" state - idle is running
   bool isIdle() {
     return _connectionState == 3;
   }
