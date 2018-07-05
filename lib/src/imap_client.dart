@@ -128,7 +128,8 @@ class ImapClient {
 
   /// Returns if the server has a certain capability.
   ///
-  /// It automatically gets the list if it isn't loaded yet.
+  /// It automatically gets the list if it isn't loaded yet. Using this method
+  /// is more favorable than calling capability yourself.
   bool serverHasCapability(String name) {
     if(_serverCapabilities.isEmpty) {
       capability().then((_) {
@@ -333,6 +334,11 @@ class ImapClient {
     return sendCommand('AUTHENTICATE $authMethod', (String info) {
       _authMethods[authMethod](
           _connection, bytes_username, bytes_password, iteration);
+    })..then((response) {
+      if(!response.responseCodes.containsKey("CAPABILITY")) {
+        _serverCapabilities.clear();
+        _authMethods.clear();
+      }
     });
   }
 
@@ -361,7 +367,12 @@ class ImapClient {
     if(_serverCapabilities.contains("LOGINDISABLED")) {
       throw new UnsupportedError("LOGIN is forbidden by the server.");
     }
-    return sendCommand('LOGIN "$username" "$password"');
+    return sendCommand('LOGIN "$username" "$password"')..then((response) {
+      if(!response.responseCodes.containsKey("CAPABILITY")) {
+        _serverCapabilities.clear();
+        _authMethods.clear();
+      }
+    });
   }
 
   /*
