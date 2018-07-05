@@ -1,5 +1,6 @@
 part of ImapClient;
 
+/// A [Socket] wrapper. Holds imap specific methods.
 class ImapConnection {
   /// The socket used for communication
   Socket _socket;
@@ -37,11 +38,13 @@ class ImapConnection {
 
   /// Writes a line to the socket
   ///
+  /// This is needed because rfc 3501 states that there should be a CRLF line
+  /// ending after each command, but the normal socket writeln() just ends with
+  /// a linefeed.
   /// Converts [obj] to a String by invoking Object.toString().
   /// Throws a [SocketException] if the connection is not open.
   void writeln([Object obj = ""]) {
     if (_isOpen) {
-      // MUST end with CRLF [RFC3501], a simple writeln() does not satisfy that
       _socket.write(obj.toString() + '\r\n');
     } else {
       throw new SocketException('Socket is closed.');
