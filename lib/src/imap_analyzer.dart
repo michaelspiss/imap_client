@@ -280,7 +280,7 @@ class _ImapAnalyzer {
     }
   }
 
-  /// Helper method to get values from (possibly inexistent) [Match] groups
+  /// Helper method to get values from (possibly non-existent) [Match] groups
   String _getGroupValue(Match match, int group) {
     try {
       return match.group(group) ?? '';
