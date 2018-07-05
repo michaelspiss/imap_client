@@ -130,11 +130,9 @@ class ImapClient {
   ///
   /// It automatically gets the list if it isn't loaded yet. Using this method
   /// is more favorable than calling capability yourself.
-  bool serverHasCapability(String name) {
+  Future<bool> serverHasCapability(String name) async {
     if(_serverCapabilities.isEmpty) {
-      capability().then((_) {
-        return _serverCapabilities.contains(name.toUpperCase());
-      });
+      await capability();
     }
     return _serverCapabilities.contains(name.toUpperCase());
   }
@@ -614,8 +612,9 @@ class ImapClient {
   /// Throws an [UnsupportedError] if the server does not support the idle
   /// command.
   /// Defined in RFC 2177 (IMAP4 IDLE command)
-  Future<ImapResponse> idle([Duration duration = const Duration(minutes: 29)]) {
-    if(!serverHasCapability("IDLE")) {
+  Future<ImapResponse> idle(
+      [Duration duration = const Duration(minutes: 29)]) async {
+    if(!await serverHasCapability("IDLE")) {
       throw new UnsupportedError("Server does not support the idle command");
     }
     int oldState = _connectionState;
