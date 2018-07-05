@@ -162,8 +162,6 @@ class ImapClient {
     return completion;
   }
 
-  // TODO: use response codes
-
   /*
   Helper methods
    */
