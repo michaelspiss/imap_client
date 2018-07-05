@@ -39,8 +39,7 @@ class ImapAnalyzer {
 
   /// Splits an incoming response line into "semantic parts"
   // Groups:                         1                      2     3           4             5       6                     7         8       9                   10                    11             12          13                   14
-  RegExp _splitter = new RegExp(
-      '^(\\s+\$)|^(?:[\\r\\n])?(?:((A[0-9]+|\\*) ([a-z]+)(?: \\[(.*?)(?: (.*))?\\])?(?: ([^{\\r\\n]+?))?)|(\\* ([0-9]+) (EXISTS|RECENT|EXPUNGE|FETCH)(?: ([^\\r\\n]+?))?)|(\\+(?: ([^{\\r\\n]+?)?)?))(?: {([0-9]+)})?\$',
+  RegExp _splitter = new RegExp('^(\\s+\$)|^(?:[\\r\\n])?(?:((A[0-9]+|\\*) ([a-z]+)(?: \\[(.*?)(?: (.*))?\\])?(?: ([^{\\r\\n]+?))?)|(\\* ([0-9]+) (EXISTS|RECENT|EXPUNGE|FETCH)(?: ([^\\r\\n]+?))?)|(\\+(?: ([^{\\r\\n]+?)?)?))(?: {([0-9]+)})?\$',
       caseSensitive: false);
 
   /// [client] must be the instance the analyser was instantiated in
