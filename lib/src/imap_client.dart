@@ -271,6 +271,9 @@ class ImapClient {
       _connectionState = stateClosed;
       _selectedMailbox = '';
       _mailboxIsReadWrite = false;
+      _commandUseUid = false;
+      _serverCapabilities.clear();
+      _serverSupportedAuthMethods.clear();
     });
     completion.then((response) {
       _handleResponseCodes(response.responseCodes);
