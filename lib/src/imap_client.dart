@@ -327,17 +327,15 @@ class ImapClient {
     var bytes_username = utf8.encode(username);
     var bytes_password = utf8.encode(password);
     _IterationWrapper iteration = new _IterationWrapper();
-
     if (!clientSupportsAuth(authMethod)) {
-      throw new UnsupportedError(
-          "Authentication method \"$authMethod\" is not supported by this "
-              "client. You can implement it by using setAuthMethod().");
+      throw new UnsupportedError("Authentication method \"$authMethod\" is not "
+          "supported by this client. Use setAuthMethod() to support it.");
     }
-
     return sendCommand('AUTHENTICATE $authMethod', (String info) {
       _authMethods[authMethod](
           _connection, bytes_username, bytes_password, iteration);
     })..then((response) {
+      if(response.isOK()) _connectionState = stateAuthenticated;
       if(!response.responseCodes.containsKey("CAPABILITY")) {
         _serverCapabilities.clear();
         _authMethods.clear();
@@ -371,6 +369,7 @@ class ImapClient {
       throw new UnsupportedError("LOGIN is forbidden by the server.");
     }
     return sendCommand('LOGIN "$username" "$password"')..then((response) {
+      if(response.isOK()) _connectionState = stateAuthenticated;
       if(!response.responseCodes.containsKey("CAPABILITY")) {
         _serverCapabilities.clear();
         _authMethods.clear();
