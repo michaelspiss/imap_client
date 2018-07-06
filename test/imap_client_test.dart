@@ -110,4 +110,38 @@ void main() {
       server.client.write("* CAPABILITY IMAP4rev1 something\r\nA0 OK\r\n");
     });
   });
+
+  group('State detection by helper functions', () {
+    test('"connected" after OK greeting', () async {
+      await client.connect(host, port, false);
+      expect(client.isConnected(), isTrue);
+    });
+    test('"authenticated" after PREAUTH greeting', () {
+      server.sendOKGreeting = false;
+      expect(client.connect(host, port, false).then((_) {
+        expect(client.isAuthenticated(), isTrue);
+      }), completes);
+      server.hasConnection.then((_) {
+        server.client.write("* PREAUTH\r\n");
+      });
+    });
+    test('"selected" after mailbox selection', () async {
+      await client.connect(host, port, false);
+      expect(client.select("INBOX").then((_) {
+        expect(client.isSelected(), isTrue);
+      }), completes);
+      server.client.listen((_) {
+        server.client.write("A0 OK\r\n");
+      });
+    });
+    test('"idle" after idle command was accepted', () async {
+      await client.connect(host, port, false);
+      client.idle().then((_) {
+        expect(client.isIdle(), isTrue);
+      });
+      server.client.listen((_) {
+        server.client.write("+ idling\r\n");
+      });
+    });
+  });
 }
