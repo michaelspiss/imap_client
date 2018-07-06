@@ -311,8 +311,9 @@ class ImapClient {
   ///
   /// Defined in RFC 3501 (Imap v4rev1)
   Future<_ImapResponse> logout() {
-    _connectionState = stateClosed;
-    return sendCommand('LOGOUT');
+    return sendCommand('LOGOUT')..then((_) {
+      _connectionState = stateClosed;
+    });
   }
 
   /// Authenticates the user via the given authentication mechanism
