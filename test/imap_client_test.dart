@@ -11,6 +11,7 @@ class TestServer {
   Socket client;
   Future hasConnection;
   Completer _completer;
+  /// Set to false to send custom greeting
   bool sendOKGreeting = true;
 
   TestServer() {
@@ -141,6 +142,100 @@ void main() {
       });
       server.client.listen((_) {
         server.client.write("+ idling\r\n");
+      });
+    });
+  });
+
+  group('Commands having side effects do them', () {
+    //
+    // capability has its own group, so it's being skipped here
+    //
+    test('logout() sets connection state to closed', () async {
+      await client.connect(host, port, false);
+      expect(client.logout().then((_) {
+        expect(client.connectionState == ImapClient.stateClosed, isTrue);
+      }), completes);
+      server.client.listen((_) {
+        server.client.write("A0 OK\r\n");
+      });
+    });
+    test('authenticate sets state to authenticated after successful login',
+        () async {
+      await client.connect(host, port, false);
+      expect(client.authenticate("username", "password").then((_) {
+        expect(client.isAuthenticated(), isTrue);
+      }), completes);
+      int i = 0;
+      server.client.listen((_) {
+        server.client.write(["+\r\n", "A0 OK"].elementAt(i++));
+      });
+    });
+    test('authenticate resets capabilities if no new were given', () async {
+      await client.connect(host, port, false);
+      expect(client.authenticate("username", "password").then((_) {
+        expect(client.serverCapabilities, []);
+      }), completes);
+      int i = 0;
+      server.client.listen((_) {
+        server.client.write(["+\r\n", "A0 OK\r\n"].elementAt(i++));
+      });
+    });
+    test('login sets state to authenticated after successful login',
+        () async {
+      await client.connect(host, port, false);
+      expect(client.login("username", "password").then((_) {
+        expect(client.isAuthenticated(), isTrue);
+      }), completes);
+      server.client.listen((_) {
+        server.client.write("A0 OK\r\n");
+      });
+    });
+    test('login resets capabilities if no new were given', () async {
+      await client.connect(host, port, false);
+      expect(client.login("username", "password").then((_) {
+        expect(client.serverCapabilities, []);
+      }), completes);
+      server.client.listen((_) {
+        server.client.write("A0 OK\r\n");
+      });
+    });
+    test('select sets read-only flag if given', () async {
+      await client.connect(host, port, false);
+      expect(client.select("INBOX").then((_) {
+        expect(client.mailboxIsReadWrite, isFalse);
+      }), completes);
+      server.client.listen((_) {
+        server.client.write("A0 OK [READ-ONLY]\r\n");
+      });
+    });
+    test('select sets read-write flag if nothing was given', () async {
+      await client.connect(host, port, false);
+      expect(client.select("INBOX").then((_) {
+        expect(client.mailboxIsReadWrite, isTrue);
+      }), completes);
+      server.client.listen((_) {
+        server.client.write("A0 OK\r\n");
+      });
+    });
+    test('login() throws error if disabled by server', () async {
+      server.sendOKGreeting = false;
+      expect(client.connect(host, port, false).then((_) {
+        expect(() => client.login("", ""), throwsUnsupportedError);
+      }), completes);
+      server.hasConnection.then((_) {
+        server.client.write("* OK [CAPABILITY IMAP4rev1 LOGINDISABLED]\r\n");
+      });
+    });
+  });
+
+  group('idle() tests', () {
+    test('idle() throws error if unsupported by server', () async {
+      server.sendOKGreeting = false;
+      expect(client.connect(host, port, false).then((_) {
+        expect(() => client.idle(), throwsUnsupportedError);
+      }), completes);
+      server.hasConnection.then((_) {
+        server.client.write("* OK [CAPABILITY IMAP4rev1]\r\n");
       });
     });
   });
