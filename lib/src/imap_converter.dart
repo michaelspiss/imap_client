@@ -2,7 +2,6 @@ part of ImapClient;
 
 /// Contains static methods to convert between imap and dart lists/maps
 class ImapConverter {
-
   /// Converts a regular list to a parenthesized imap list
   static String dartListToImapList(List<String> list) {
     String listString = list.toString();
@@ -27,8 +26,7 @@ class ImapConverter {
   /// " one two three"  - additional whitespaces inside or around are ignored.
   static List<String> imapListToDartList(String string) {
     string = string.trim();
-    Match match = new RegExp('^\\(? *([^()\r\n]*?) *\\)?\$').firstMatch(
-        string);
+    Match match = new RegExp('^\\(? *([^()\r\n]*?) *\\)?\$').firstMatch(string);
     if (match == null) {
       throw new ArgumentError("The string given is not a vaild imap list.");
     }
@@ -45,7 +43,7 @@ class ImapConverter {
   static Map<String, String> imapListToDartMap(String string) {
     List<String> parts = imapListToDartList(string);
     Map<String, String> map = <String, String>{};
-    if(parts.isEmpty) {
+    if (parts.isEmpty) {
       return map;
     }
     for (int i = 0; i < parts.length; i++) {

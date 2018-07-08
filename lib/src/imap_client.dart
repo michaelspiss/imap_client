@@ -132,7 +132,7 @@ class ImapClient {
   /// It automatically gets the list if it isn't loaded yet. Using this method
   /// is more favorable than calling capability yourself.
   Future<bool> serverHasCapability(String name) async {
-    if(_serverCapabilities.isEmpty) {
+    if (_serverCapabilities.isEmpty) {
       await capability();
     }
     return _serverCapabilities.contains(name.toUpperCase());
@@ -208,7 +208,7 @@ class ImapClient {
       [Function onContinue = null, String tag = '']) {
     tag = _prepareTag(tag);
     Future<_ImapResponse> completion =
-      _prepareResponseStateListener(tag, onContinue);
+        _prepareResponseStateListener(tag, onContinue);
     String uid = _commandUseUid ? "UID " : "";
     _commandUseUid = false;
     _connection.writeln('$tag $uid$command');
@@ -311,9 +311,10 @@ class ImapClient {
   ///
   /// Defined in RFC 3501 (Imap v4rev1)
   Future<_ImapResponse> logout() {
-    return sendCommand('LOGOUT')..then((_) {
-      _connectionState = stateClosed;
-    });
+    return sendCommand('LOGOUT')
+      ..then((_) {
+        _connectionState = stateClosed;
+      });
   }
 
   /// Authenticates the user via the given authentication mechanism
@@ -334,13 +335,14 @@ class ImapClient {
     return sendCommand('AUTHENTICATE $authMethod', (String info) {
       _authMethods[authMethod](
           _connection, bytes_username, bytes_password, iteration);
-    })..then((response) {
-      if(response.isOK()) _connectionState = stateAuthenticated;
-      if(!response.responseCodes.containsKey("CAPABILITY")) {
-        _serverCapabilities.clear();
-        _authMethods.clear();
-      }
-    });
+    })
+      ..then((response) {
+        if (response.isOK()) _connectionState = stateAuthenticated;
+        if (!response.responseCodes.containsKey("CAPABILITY")) {
+          _serverCapabilities.clear();
+          _authMethods.clear();
+        }
+      });
   }
 
   /// Upgrades an insecure connection to a TLS encrypted one. DEPRECATED!
@@ -365,16 +367,17 @@ class ImapClient {
   /// [UnsupportedError].
   /// Defined in RFC 3501 (Imap v4rev1)
   Future<_ImapResponse> login(String username, String password) {
-    if(_serverCapabilities.contains("LOGINDISABLED")) {
+    if (_serverCapabilities.contains("LOGINDISABLED")) {
       throw new UnsupportedError("LOGIN is forbidden by the server.");
     }
-    return sendCommand('LOGIN "$username" "$password"')..then((response) {
-      if(response.isOK()) _connectionState = stateAuthenticated;
-      if(!response.responseCodes.containsKey("CAPABILITY")) {
-        _serverCapabilities.clear();
-        _authMethods.clear();
-      }
-    });
+    return sendCommand('LOGIN "$username" "$password"')
+      ..then((response) {
+        if (response.isOK()) _connectionState = stateAuthenticated;
+        if (!response.responseCodes.containsKey("CAPABILITY")) {
+          _serverCapabilities.clear();
+          _authMethods.clear();
+        }
+      });
   }
 
   /*
@@ -501,15 +504,15 @@ class ImapClient {
   Future<_ImapResponse> append(String mailbox, String message,
       [String dateTime = "", List<String> flags]) {
     dateTime = dateTime.isEmpty ? "" : " " + dateTime;
-    String flagsString = flags == null ? "" : " " +
-        ImapConverter.dartListToImapList(flags);
+    String flagsString =
+        flags == null ? "" : " " + ImapConverter.dartListToImapList(flags);
     Utf8Encoder encoder = new Utf8Encoder();
     List<int> convertedMessage = encoder.convert(message);
     int length = convertedMessage.length;
     return sendCommand('APPEND "$mailbox"$flagsString$dateTime {$length}',
-            (String info) {
-          _connection.writeln(message);
-        });
+        (String info) {
+      _connection.writeln(message);
+    });
   }
 
   /*
@@ -582,8 +585,8 @@ class ImapClient {
   /// +FLAGS <flag list> - adds flags
   /// -FLAGS <flag list> - removes flags
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> store(String sequenceSet, String dataItem,
-      String dataValue) {
+  Future<_ImapResponse> store(
+      String sequenceSet, String dataItem, String dataValue) {
     return sendCommand('STORE $sequenceSet $dataItem $dataValue');
   }
 
@@ -618,7 +621,7 @@ class ImapClient {
   /// Defined in RFC 2177 (IMAP4 IDLE command)
   Future<_ImapResponse> idle(
       [Duration duration = const Duration(minutes: 29)]) async {
-    if(!await serverHasCapability("IDLE")) {
+    if (!await serverHasCapability("IDLE")) {
       throw new UnsupportedError("Server does not support the idle command");
     }
     int oldState = _connectionState;
