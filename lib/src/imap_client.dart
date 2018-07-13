@@ -1,5 +1,13 @@
 part of ImapClient;
 
+/// Handles update responses like EXISTS, EXPUNGE, RECENT
+typedef void UpdateHandler(String mailboxName, int messageNumber);
+/// Handles fetch responses
+typedef void FetchHandler(String mailboxName, int messageNumber,
+    Map<String, String> attributes);
+/// Handles messages sent by the server.
+typedef void MessageHandler(String info);
+
 /// The main class which acts as an interface for the imap 4 (rev 1) protocol
 class ImapClient {
   ImapConnection _connection;
@@ -63,41 +71,20 @@ class ImapClient {
   bool get mailboxIsReadWrite => _mailboxIsReadWrite;
 
   // Handlers for specific (unsolicited) server responses.
-  /// Handler for EXISTS responses. Must take mailbox name and message number
-  ///
-  /// ```
-  /// void handler(String mailboxName, int messageNumber) { ... }
-  /// ```
-  Function existsHandler;
+  /// Handler for EXISTS update responses.
+  UpdateHandler existsHandler;
 
-  /// Handler for RECENT responses. Must take mailbox name and message number
-  ///
-  /// ```
-  /// void handler(String mailboxName, int messageNumber) { ... }
-  /// ```
-  Function recentHandler;
+  /// Handler for RECENT update responses.
+  UpdateHandler recentHandler;
 
-  /// Handler for EXPUNGE responses. Must take mailbox name and message number
-  ///
-  /// ```
-  /// void handler(String mailboxName, int messageNumber) { ... }
-  /// ```
-  Function expungeHandler;
+  /// Handler for EXPUNGE update responses.
+  UpdateHandler expungeHandler;
 
-  /// Handler for FETCH responses. Must take mailbox name, message number, data
-  ///
-  /// ```
-  /// void handler(String mailboxName, int messageNumber,
-  ///    Map<String, String> attributes) { ... }
-  /// ```
-  Function fetchHandler;
+  /// Handler for FETCH update responses.
+  FetchHandler fetchHandler;
 
-  /// Handles ALERT response codes. Must take alert info
-  ///
-  /// ```
-  /// void handler(String info) { ... }
-  /// ```
-  Function alertHandler;
+  /// Handles ALERT responses. Those should be shown to the user.
+  MessageHandler alertHandler;
 
   ImapClient() {
     _connection = new ImapConnection();
@@ -205,7 +192,7 @@ class ImapClient {
   /// returns a [Future], that indicates command completion and carries the
   /// responded block.
   Future<_ImapResponse> sendCommand(String command,
-      [Function onContinue = null, String tag = '']) {
+      [MessageHandler onContinue = null, String tag = '']) {
     tag = _prepareTag(tag);
     Future<_ImapResponse> completion =
         _prepareResponseStateListener(tag, onContinue);
