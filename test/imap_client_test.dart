@@ -264,4 +264,136 @@ void main() {
       });
     });
   });
+
+  /*
+   *
+   * ANALYZER
+   * TESTS
+   *
+   */
+
+  group("Command completion tests", () {
+    test("Completion handler added first will handle first request (fifo)",
+        () async {
+      bool handledByFirst = false;
+      Completer done = new Completer();
+      await client.connect(host, port, false);
+      client.sendCommand("", (_) {
+        handledByFirst = true;
+        done.complete();
+      });
+      client.sendCommand("", (_) {
+        handledByFirst = false;
+        done.complete();
+      });
+      server.client.write("+\r\n");
+      expect(done.future.then((_) {
+        expect(handledByFirst, isTrue);
+      }), completes);
+    });
+    test("Only one handler is called at a time", () async {
+      await client.connect(host, port, false);
+      void increaseCalls(_) => expectAsync0(() {}, count: 1);
+      client.sendCommand("", increaseCalls);
+      client.sendCommand("", increaseCalls);
+      server.client.write("+\r\n");
+    });
+    test("Handler gets continuation info", () async {
+      await client.connect(host, port, false);
+      client.sendCommand("", (String info) {
+        expect(info, "info");
+      });
+      server.client.write("+ info\r\n");
+    });
+    test("Continuation info is empty string if none given", () async {
+      await client.connect(host, port, false);
+      client.sendCommand("", (String info) {
+        expect(info, "");
+      });
+      server.client.write("+\r\n");
+    });
+  });
+
+  group("Command completion status tests", () {
+    test('Response is marked as "OK" when status is "OK"', () async {
+      await client.connect(host, port, false);
+      expect(
+          client.noop().then((res) {
+            expect(res.isOK(), isTrue);
+          }),
+          completes);
+      server.client.write("A0 OK\r\n");
+    });
+    test('Response is marked as "BAD" when status is "BAD"', () async {
+      await client.connect(host, port, false);
+      expect(
+          client.noop().then((res) {
+            expect(res.status, "BAD");
+          }),
+          completes);
+      server.client.write("A0 BAD\r\n");
+    });
+    test('Response is marked as "NO" when status is "NO"', () async {
+      await client.connect(host, port, false);
+      expect(
+          client.noop().then((res) {
+            expect(res.status, "NO");
+          }),
+          completes);
+      server.client.write("A0 NO\r\n");
+    });
+    test('Response status is always capitalized', () async {
+      await client.connect(host, port, false);
+      expect(
+          client.noop().then((res) {
+            expect(res.status, "BAD");
+          }),
+          completes);
+      server.client.write("A0 bad\r\n");
+    });
+    test('Unknown response status is still transmitted', () async {
+      await client.connect(host, port, false);
+      expect(
+          client.noop().then((res) {
+            expect(res.status, "SOMETHING");
+          }),
+          completes);
+      server.client.write("A0 SOMETHING\r\n");
+    });
+  });
+
+  group("Literal handling tests", () {
+    test("Literals can be info for command completion request", () async {
+      await client.connect(host, port, false);
+      expect(
+          client.sendCommand("", (String info) {
+            expect(info, "literal works");
+            server.client.write("A0 OK\r\n");
+          }),
+          completes);
+      server.client.write("+ {13}\r\nliteral works\r\n");
+    });
+    test("Literals can be fetch parts", () async {
+      await client.connect(host, port, false);
+      Completer done = new Completer();
+      client.fetchHandler = (String mailboxName, int messageNumber,
+          Map<String, String> attributes) {
+        expect(attributes, {"ONE": "literal works"});
+        done.complete();
+      };
+      server.client.write("* 17 FETCH (ONE {13}\r\nliteral works)\n* OK");
+      expect(done.future, completes);
+    });
+    test("There can be multiple literals in a fetch response", () async {
+      await client.connect(host, port, false);
+      Completer done = new Completer();
+      client.fetchHandler = (String mailboxName, int messageNumber,
+          Map<String, String> attributes) {
+        expect(attributes, {"ONE": "literal works", "TWO": "second works too"});
+        done.complete();
+      };
+      server.client.write("* 17 FETCH (ONE {13}\r\nliteral works TWO {16}\r\nsecond works too)\r\nA0 OK");
+      expect(done.future, completes);
+    });
+  });
 }
