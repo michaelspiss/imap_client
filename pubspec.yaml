@@ -1,14 +1,12 @@
-name: ImapClient
-description: A starting point for Dart libraries or applications.
-# version: 1.0.0
-# homepage: https://www.example.com
-# author: Michi <email@example.com>
+name: imap_client
+description: An interface to get emails via the imap protocol (version 4rev1)
+version: 0.1.0
+homepage: https://github.com/michaelspiss/imap_client
+author: Michael Spiss <michaelspiss.dev@mailbox.org>
+documentation:
 
 environment:
-  sdk: '>=2.0.0-dev.52.0 <2.0.0'
-
-#dependencies:
-#  path: ^1.4.1
+  sdk: '>=2.0.0-dev.67.0 <3.0.0'
 
 dev_dependencies:
   test: ^0.12.30
