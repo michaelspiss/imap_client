@@ -50,9 +50,9 @@ void main() {
 
     test('Client connect is complete when server sends greeting', () {
       bool greetingSent = false;
-      client.connect(host, port, false).then((_) {
+      expect(client.connect(host, port, false).then((_) {
         expect(greetingSent, isTrue);
-      });
+      }), completes);
       server.hasConnection.then((_) {
         Future.delayed(Duration(seconds: 1), () {
           greetingSent = true;
@@ -61,17 +61,19 @@ void main() {
       });
     });
     test('Client sets state to connected after OK', () {
-      client.connect(host, port, false).then((_) {
+      expect(client.connect(host, port, false).then((_) {
         expect(client.connectionState, ImapClient.stateConnected);
-      });
+      }), completes);
       server.hasConnection.then((_) {
         server.client.write("* OK\r\n");
       });
     });
     test('Client sets state to authenticated after PREAUTH', () {
-      client.connect(host, port, false).then((_) {
-        expect(client.connectionState, ImapClient.stateAuthenticated);
-      });
+      expect(
+          client.connect(host, port, false).then((_) {
+            expect(client.connectionState, ImapClient.stateAuthenticated);
+          }),
+          completes);
       server.hasConnection.then((_) {
         server.client.write("* PREAUTH\r\n");
       });
