@@ -206,8 +206,8 @@ class _ImapAnalyzer {
     Map<String, String> map = new Map<String, String>();
     for (int i = 0; i < parts.length; i++) {
       String value = ++i < parts.length ? parts[i] : "";
-      Match match = new RegExp('{([0-9]+?)}').firstMatch(parts[i]);
-      value = match != null ? _literals[int.parse(match.group(1))] : parts[i];
+      Match match = new RegExp('{([0-9]+?)}').firstMatch(value);
+      value = match != null ? _literals[int.parse(match.group(1))] : value;
       map[parts[i - 1]] = value;
     }
     return map;
@@ -247,9 +247,10 @@ class _ImapAnalyzer {
     List<int> encoded = _utf8.encode(line);
     String rest = '';
     if (_currentLiteralLength + encoded.length > _actualLiteralLength) {
-      int max = _currentLiteralLength + encoded.length - _actualLiteralLength;
-      _literal += line.substring(0, max);
-      rest = line.substring(max);
+      int max = _actualLiteralLength - _currentLiteralLength;
+      _literal += utf8.decode(encoded.sublist(0, max));
+      _currentLiteralLength += max;
+      rest = utf8.decode(encoded.sublist(max));
     } else {
       _currentLiteralLength += _utf8.encode(line).length;
       _literal += line;
