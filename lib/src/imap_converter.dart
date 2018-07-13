@@ -1,4 +1,4 @@
-part of ImapClient;
+part of imap_client;
 
 /// Contains static methods to convert between imap and dart lists/maps
 class ImapConverter {

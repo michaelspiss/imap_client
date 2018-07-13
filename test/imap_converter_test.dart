@@ -1,4 +1,4 @@
-import 'package:ImapClient/imap_client.dart';
+import 'package:imap_client/imap_client.dart';
 import 'package:test/test.dart';
 
 void main() {

@@ -1,4 +1,4 @@
-part of ImapClient;
+part of imap_client;
 
 /// A [Socket] wrapper. Holds methods tailored to imap's needs.
 class ImapConnection {

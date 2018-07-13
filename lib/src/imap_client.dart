@@ -1,4 +1,4 @@
-part of ImapClient;
+part of imap_client;
 
 /// Handles update responses like EXISTS, EXPUNGE, RECENT
 typedef void UpdateHandler(String mailboxName, int messageNumber);

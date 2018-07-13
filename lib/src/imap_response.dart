@@ -1,4 +1,4 @@
-part of ImapClient;
+part of imap_client;
 
 class _ImapResponse {
   /// The command completion status (OK/NO - error/BAD - command invalid)

@@ -1,4 +1,4 @@
-part of ImapClient;
+part of imap_client;
 
 /// Needed to pass the iteration number by reference
 class _IterationWrapper {

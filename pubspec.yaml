@@ -1,7 +1,7 @@
-name: ImapClient
+name: imap_client
 description: An interface to get emails via the imap protocol (version 4rev1)
 version: 0.1.0
-homepage: https://github.com/michaelspiss/ImapClient
+homepage: https://github.com/michaelspiss/imap_client
 author: Michael Spiss <michaelspiss.dev@mailbox.org>
 documentation:
 

@@ -1,4 +1,4 @@
-library ImapClient;
+library imap_client;
 
 import 'dart:io';
 import 'dart:async';

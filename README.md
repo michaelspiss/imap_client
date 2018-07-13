@@ -1,4 +1,4 @@
-# ImapClient
+# imap_client
 
 An interface to get emails via the imap protocol (version 4rev1) 
 
@@ -16,7 +16,7 @@ This package is made available under the [GNU General Public License v3.0](https
 This example connects the client to an imap server:
 
 ```dart
-import 'package:ImapClient/ImapClient.dart';
+import 'package:imap_client/imap_client.dart';
 
 main() async {
   ImapClient client = new ImapClient();

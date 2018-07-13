@@ -1,4 +1,4 @@
-part of ImapClient;
+part of imap_client;
 
 /// Holds the logic for classifying lines and acting on them.
 class _ImapAnalyzer {
