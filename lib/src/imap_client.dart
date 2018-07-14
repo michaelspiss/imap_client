@@ -153,9 +153,9 @@ class ImapClient {
   /// whenever there is a command continuation request. Callbacks must take
   /// a string (additional info sent by the client) as parameter.
   /// Returns a [Future] that indicates command completion (tagged response).
-  Future<_ImapResponse> _prepareResponseStateListener(String tag,
+  Future<ImapResponse> _prepareResponseStateListener(String tag,
       [Function onContinue = null]) {
-    var completer = new Completer<_ImapResponse>();
+    var completer = new Completer<ImapResponse>();
     StreamSubscription subscription;
     subscription = _analyzer.updates.listen((responseState) {
       if (responseState['tag'] == tag) {
@@ -193,13 +193,14 @@ class ImapClient {
   /// time there is a command continuation request (+) from the server. It
   /// returns a [Future], that indicates command completion and carries the
   /// responded block.
-  Future<_ImapResponse> sendCommand(String command,
+  Future<ImapResponse> sendCommand(String command,
       [MessageHandler onContinue = null, String tag = '']) {
     tag = _prepareTag(tag);
-    Future<_ImapResponse> completion =
+    Future<ImapResponse> completion =
         _prepareResponseStateListener(tag, onContinue);
     String uid = _commandUseUid ? "UID " : "";
     _commandUseUid = false;
+    _logger.info('Sending command "$tag $uid$command"');
     _connection.writeln('$tag $uid$command');
     completion.then((response) {
       _handleResponseCodes(response.responseCodes);
@@ -254,9 +255,11 @@ class ImapClient {
   /// Connects to [host] in [port], uses SSL and TSL if [secure] is true
   ///
   /// It's highly recommended to (a)wait for this to finish.
-  Future<_ImapResponse> connect(String host, int port, bool secure) {
-    Future<_ImapResponse> completion = _prepareResponseStateListener('connect');
+  Future<ImapResponse> connect(String host, int port, bool secure) {
+    Future<ImapResponse> completion = _prepareResponseStateListener('connect');
     _analyzer._isGreeting = true;
+    _logger.info("Connecting to $host at port $port with secure mode " +
+        (secure ? 'on' : 'off'));
     _connection.connect(host, port, secure, _responseHandler, () {
       _connectionState = stateClosed;
       _selectedMailbox = '';
@@ -275,10 +278,10 @@ class ImapClient {
   ///
   /// This should only be used right after the connect and right after the
   /// authentication. It should not be used if it was already updated via
-  /// a response code. Check the [_ImapResponse] of both [connect] and
+  /// a response code. Check the [ImapResponse] of both [connect] and
   /// [authenticate]/[login] for already updated lists.
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> capability() {
+  Future<ImapResponse> capability() {
     return sendCommand('CAPABILITY')
       ..then((response) {
         if (response.untagged.containsKey('CAPABILITY')) {
@@ -292,14 +295,14 @@ class ImapClient {
   /// Can be used to prevent an automatic disconnect from the server due to
   /// inactivity and also to periodically fetch mailbox changes.
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> noop() {
+  Future<ImapResponse> noop() {
     return sendCommand('NOOP');
   }
 
   /// Ends the session, server closes connection
   ///
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> logout() {
+  Future<ImapResponse> logout() {
     return sendCommand('LOGOUT')
       ..then((_) {
         _connectionState = stateClosed;
@@ -311,7 +314,7 @@ class ImapClient {
   /// Throws an [UnsupportedError] if a by the client unsupported auth method
   /// is used.
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> authenticate(String username, String password,
+  Future<ImapResponse> authenticate(String username, String password,
       [String authMethod = "plain"]) {
     authMethod = authMethod.toLowerCase();
     var bytes_username = utf8.encode(username);
@@ -355,7 +358,7 @@ class ImapClient {
   /// capability. If this method is still used, it will throw an
   /// [UnsupportedError].
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> login(String username, String password) {
+  Future<ImapResponse> login(String username, String password) {
     if (_serverCapabilities.contains("LOGINDISABLED")) {
       throw new UnsupportedError("LOGIN is forbidden by the server.");
     }
@@ -379,12 +382,12 @@ class ImapClient {
   /// it stays in the unselected state. Please check the [mailboxIsReadWrite]
   /// attribute to see if the client is allowed to modify the mailbox.
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> select(String mailbox) {
+  Future<ImapResponse> select(String mailbox) {
     _connectionState = stateAuthenticated;
     _selectedMailbox = '';
     _mailboxIsReadWrite = false;
-    Future<_ImapResponse> future = sendCommand('SELECT "$mailbox"');
-    future.then((_ImapResponse res) {
+    Future<ImapResponse> future = sendCommand('SELECT "$mailbox"');
+    future.then((ImapResponse res) {
       if (res.isOK()) {
         _connectionState = stateSelected;
         _selectedMailbox = mailbox;
@@ -397,7 +400,7 @@ class ImapClient {
   /// Does the same as [select], but the selected mailbox is read-only
   ///
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> examine(String mailbox) {
+  Future<ImapResponse> examine(String mailbox) {
     return sendCommand('EXAMINE "$mailbox"');
   }
 
@@ -406,7 +409,7 @@ class ImapClient {
   /// OK on success, NO if something went wrong. To create a hierarchy, the
   /// name must include the hierarchy separator as returned by [list].
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> create(String mailbox) {
+  Future<ImapResponse> create(String mailbox) {
     return sendCommand('CREATE "$mailbox"');
   }
 
@@ -414,7 +417,7 @@ class ImapClient {
   ///
   /// This does not remove inferior mailboxes in their hierarchy.
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> delete(String mailbox) {
+  Future<ImapResponse> delete(String mailbox) {
     return sendCommand('DELETE "$mailbox"');
   }
 
@@ -425,7 +428,7 @@ class ImapClient {
   /// inside to the new mailbox, leaving INBOX empty. If INBOX has inferiors,
   /// those are unaffected.
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> rename(String mailbox, String newMailboxName) {
+  Future<ImapResponse> rename(String mailbox, String newMailboxName) {
     return sendCommand('RENAME "$mailbox" "$newMailboxName"');
   }
 
@@ -434,14 +437,14 @@ class ImapClient {
   /// The server may check for its existence, but does not automatically remove
   /// it from this list should it be removed.
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> subscribe(String mailbox) {
+  Future<ImapResponse> subscribe(String mailbox) {
     return sendCommand('SUBSCRIBE "$mailbox"');
   }
 
   /// Removes a mailbox from the "active/subscribed" list as returned by [lsub]
   ///
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> unsubscribe(String mailbox) {
+  Future<ImapResponse> unsubscribe(String mailbox) {
     return sendCommand('UNSUBSCRIBE "$mailbox"');
   }
 
@@ -456,7 +459,7 @@ class ImapClient {
   /// convention. Wildcards: * matches zero or more characters, whereas %
   /// matches all characters except th hierarchy delimiter.
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> list(String referenceName, String mailboxName) {
+  Future<ImapResponse> list(String referenceName, String mailboxName) {
     return sendCommand('LIST "$referenceName" "$mailboxName"');
   }
 
@@ -466,7 +469,7 @@ class ImapClient {
   /// trustworthy. If "foo/bar" is subscribed, but the % wildcard is used, foo
   /// is returned with the \Noselect attribute.
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> lsub(String referenceName, String mailboxName) {
+  Future<ImapResponse> lsub(String referenceName, String mailboxName) {
     return sendCommand('LSUB "$referenceName" "$mailboxName"');
   }
 
@@ -478,7 +481,7 @@ class ImapClient {
   /// on the currently selected mailbox.
   /// Status data items: MESSAGES, RECENT, UIDNEXT, UIDVALIDITY, UNSEEN
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> status(String mailbox, List<String> statusDataItems) {
+  Future<ImapResponse> status(String mailbox, List<String> statusDataItems) {
     String dataItems = ImapConverter.dartListToImapList(statusDataItems);
     return sendCommand('STATUS "$mailbox" $dataItems');
   }
@@ -490,7 +493,7 @@ class ImapClient {
   /// If the mailbox does not exist, an error is returned. If it could be
   /// created, a TRYCREATE response code is sent.
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> append(String mailbox, String message,
+  Future<ImapResponse> append(String mailbox, String message,
       [String dateTime = "", List<String> flags]) {
     dateTime = dateTime.isEmpty ? "" : " " + dateTime;
     String flagsString =
@@ -511,7 +514,7 @@ class ImapClient {
   /// The same as [noop], may trigger housekeeping operations on the server side
   ///
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> check() {
+  Future<ImapResponse> check() {
     return sendCommand('CHECK');
   }
 
@@ -520,9 +523,9 @@ class ImapClient {
   /// Also removes all messages with the \Deleted flag in the selected mailbox.
   /// [select]/[examine] don't need a close when changing the mailbox.
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> close() {
-    Future<_ImapResponse> future = sendCommand('CLOSE');
-    future.then((_ImapResponse res) {
+  Future<ImapResponse> close() {
+    Future<ImapResponse> future = sendCommand('CLOSE');
+    future.then((ImapResponse res) {
       if (res.isOK()) {
         _connectionState = stateAuthenticated;
         _selectedMailbox = '';
@@ -538,7 +541,7 @@ class ImapClient {
   /// relative id (position) -> EXPUNGE 3, EXPUNGE 3, EXPUNGE 4 will actually
   /// remove messages 3,4 and 6.
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> expunge() {
+  Future<ImapResponse> expunge() {
     return sendCommand('EXPUNGE');
   }
 
@@ -550,7 +553,7 @@ class ImapClient {
   /// Matching is case insensitive. Please look at the rfc for a full list of
   /// defined search keys.
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> search(String searchCriteria, [String charset = ""]) {
+  Future<ImapResponse> search(String searchCriteria, [String charset = ""]) {
     charset = charset.isEmpty ? "" : "CHARSET " + charset + " ";
     return sendCommand('SEARCH $charset$searchCriteria');
   }
@@ -560,7 +563,7 @@ class ImapClient {
   /// Matching is case insensitive. Please look at the rfc for a full list of
   /// defined message data item names.
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> fetch(String sequenceSet, List<String> dataItemNames) {
+  Future<ImapResponse> fetch(String sequenceSet, List<String> dataItemNames) {
     String dataItems = ImapConverter.dartListToImapList(dataItemNames);
     return sendCommand('FETCH $sequenceSet $dataItems');
   }
@@ -574,7 +577,7 @@ class ImapClient {
   /// +FLAGS <flag list> - adds flags
   /// -FLAGS <flag list> - removes flags
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> store(
+  Future<ImapResponse> store(
       String sequenceSet, String dataItem, String dataValue) {
     return sendCommand('STORE $sequenceSet $dataItem $dataValue');
   }
@@ -585,7 +588,7 @@ class ImapClient {
   /// If the mailbox does not exist TRYCREATE is sent as response code along
   /// a NO response.
   /// Defined in RFC 3501 (Imap v4rev1)
-  Future<_ImapResponse> copy(String sequenceSet, String mailbox) {
+  Future<ImapResponse> copy(String sequenceSet, String mailbox) {
     return sendCommand('COPY $sequenceSet $mailbox');
   }
 
@@ -608,7 +611,7 @@ class ImapClient {
   /// Throws an [UnsupportedError] if the server does not support the idle
   /// command.
   /// Defined in RFC 2177 (IMAP4 IDLE command)
-  Future<_ImapResponse> idle(
+  Future<ImapResponse> idle(
       [Duration duration = const Duration(minutes: 29)]) async {
     if (!await serverHasCapability("IDLE")) {
       throw new UnsupportedError("Server does not support the idle command");

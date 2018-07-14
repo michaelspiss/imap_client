@@ -32,11 +32,11 @@ class _ImapAnalyzer {
   /// Sends command status updates back to the client
   ///
   /// {"tag": tag, "status": "continue", "info": "foo"} or
-  /// {"tag": tag, "status": "complete", "response": [_ImapResponse]}
+  /// {"tag": tag, "status": "complete", "response": [ImapResponse]}
   Stream get updates => _updates.stream;
 
   /// Holds results of the current tag's analysis data
-  Map<String, dynamic> _results = _ImapResponse.getResponseBlueprint();
+  Map<String, dynamic> _results = ImapResponse.getResponseBlueprint();
 
   /// Splits an incoming response line into "semantic parts"
   RegExp _splitter = new RegExp(
@@ -61,7 +61,7 @@ class _ImapAnalyzer {
 
   /// Interprets server responses and calls specific handlers.
   ///
-  /// Returns an [_ImapResponse] via the completer, which contains command
+  /// Returns an [ImapResponse] via the completer, which contains command
   /// specific responses plus the command completion status (OK/BAD/NO).
   void analyzeLine(String line) {
     if (_skipAnalysis) {
@@ -152,10 +152,10 @@ class _ImapAnalyzer {
       _updates.add({
         "tag": _isGreeting ? "connect" : match.group(3),
         "state": "complete",
-        "response": _ImapResponse.fromMap(_results)
+        "response": ImapResponse.fromMap(_results)
       });
       _registeredTags.remove(match.group(3));
-      _results = _ImapResponse.getResponseBlueprint();
+      _results = ImapResponse.getResponseBlueprint();
     }
     if (_isGreeting) {
       _isGreeting = false;
