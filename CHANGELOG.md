@@ -1,3 +1,7 @@
+## 0.1.2
+
+- Implement logging. Use printImapClientDebugLog() to display it.
+
 ## 0.1.1
 
 - Fix errors caused by older dart version 2.0.0-dev.63.0
