@@ -30,6 +30,7 @@ class ImapConnection {
       _isOpen = true;
       _socket.listen(responseHandler, cancelOnError: true, onDone: () {
         onDoneCallback();
+        _logger.info("Connection has been terminated by the server.");
         _socket.destroy();
         _isOpen = false;
       });

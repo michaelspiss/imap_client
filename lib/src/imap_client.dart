@@ -200,6 +200,7 @@ class ImapClient {
         _prepareResponseStateListener(tag, onContinue);
     String uid = _commandUseUid ? "UID " : "";
     _commandUseUid = false;
+    _logger.info('Sending command "$tag $uid$command"');
     _connection.writeln('$tag $uid$command');
     completion.then((response) {
       _handleResponseCodes(response.responseCodes);
@@ -257,6 +258,8 @@ class ImapClient {
   Future<ImapResponse> connect(String host, int port, bool secure) {
     Future<ImapResponse> completion = _prepareResponseStateListener('connect');
     _analyzer._isGreeting = true;
+    _logger.info("Connecting to $host at port $port with secure mode " +
+        (secure ? 'on' : 'off'));
     _connection.connect(host, port, secure, _responseHandler, () {
       _connectionState = stateClosed;
       _selectedMailbox = '';

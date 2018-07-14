@@ -20,3 +20,7 @@ part 'src/imap_client.dart';
 part 'src/imap_converter.dart';
 
 Logger _logger = new Logger('imap_client');
+
+void printImapClientDebugLog() {
+  _logger.onRecord.listen(print);
+}

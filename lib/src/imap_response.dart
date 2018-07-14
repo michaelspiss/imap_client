@@ -67,6 +67,9 @@ class ImapResponse {
   static ImapResponse fromMap(Map<String, dynamic> map) {
     Map<String, dynamic> responses = getResponseBlueprint();
     responses.addAll(map);
+    if (responses['status'] == 'NO') {
+      _logger.info('The last command failed with status "NO"');
+    }
     return new ImapResponse(
         status: responses['status'],
         statusInformation: responses['statusInformation'],
