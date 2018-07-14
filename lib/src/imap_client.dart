@@ -2,9 +2,11 @@ part of imap_client;
 
 /// Handles update responses like EXISTS, EXPUNGE, RECENT
 typedef void UpdateHandler(String mailboxName, int messageNumber);
+
 /// Handles fetch responses
-typedef void FetchHandler(String mailboxName, int messageNumber,
-    Map<String, String> attributes);
+typedef void FetchHandler(
+    String mailboxName, int messageNumber, Map<String, String> attributes);
+
 /// Handles messages sent by the server.
 typedef void MessageHandler(String info);
 

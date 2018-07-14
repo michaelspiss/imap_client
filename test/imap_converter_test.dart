@@ -28,8 +28,8 @@ void main() {
           ["one", "two", "three"]);
     });
     test("Throws an error if the argument is not a valid imap list", () {
-      expect(() => ImapConverter.imapListToDartList(
-          "not ( a valid ) list"), throwsArgumentError);
+      expect(() => ImapConverter.imapListToDartList("not ( a valid ) list"),
+          throwsArgumentError);
     });
   });
 
@@ -59,8 +59,8 @@ void main() {
           {"one": "two", "three": "four"});
     });
     test("Throws an error if the argument is not a valid imap list", () {
-      expect(() => ImapConverter.imapListToDartMap(
-          "not ( a valid ) list"), throwsArgumentError);
+      expect(() => ImapConverter.imapListToDartMap("not ( a valid ) list"),
+          throwsArgumentError);
     });
   });
 
