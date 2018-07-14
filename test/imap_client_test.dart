@@ -50,20 +50,24 @@ void main() {
 
     test('Client connect is complete when server sends greeting', () {
       bool greetingSent = false;
-      expect(client.connect(host, port, false).then((_) {
-        expect(greetingSent, isTrue);
-      }), completes);
+      expect(
+          client.connect(host, port, false).then((_) {
+            expect(greetingSent, isTrue);
+          }),
+          completes);
       server.hasConnection.then((_) {
-        Future.delayed(Duration(seconds: 1), () {
+        new Future.delayed(new Duration(seconds: 1), () {
           greetingSent = true;
           server.client.write("* OK\r\n");
         });
       });
     });
     test('Client sets state to connected after OK', () {
-      expect(client.connect(host, port, false).then((_) {
-        expect(client.connectionState, ImapClient.stateConnected);
-      }), completes);
+      expect(
+          client.connect(host, port, false).then((_) {
+            expect(client.connectionState, ImapClient.stateConnected);
+          }),
+          completes);
       server.hasConnection.then((_) {
         server.client.write("* OK\r\n");
       });
@@ -392,7 +396,8 @@ void main() {
         expect(attributes, {"ONE": "literal works", "TWO": "second works too"});
         done.complete();
       };
-      server.client.write("* 17 FETCH (ONE {13}\r\nliteral works TWO {16}\r\nsecond works too)\r\nA0 OK");
+      server.client.write(
+          "* 17 FETCH (ONE {13}\r\nliteral works TWO {16}\r\nsecond works too)\r\nA0 OK");
       expect(done.future, completes);
     });
   });

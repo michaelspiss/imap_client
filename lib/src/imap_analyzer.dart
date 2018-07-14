@@ -39,8 +39,10 @@ class _ImapAnalyzer {
   Map<String, dynamic> _results = _ImapResponse.getResponseBlueprint();
 
   /// Splits an incoming response line into "semantic parts"
-  // Groups:                         1                      2     3           4             5       6                     7         8       9                   10                    11             12          13                   14
-  RegExp _splitter = new RegExp('^(\\s+\$)|^(?:[\\r\\n])?(?:((A[0-9]+|\\*) ([a-z]+)(?: \\[(.*?)(?: (.*))?\\])?(?: ([^{\\r\\n]+?))?)|(\\* ([0-9]+) (EXISTS|RECENT|EXPUNGE|FETCH)(?: ([^\\r\\n]+?))?)|(\\+(?: ([^{\\r\\n]+?)?)?))(?: {([0-9]+)})? ?\$',
+  RegExp _splitter = new RegExp(
+      // Groups:
+      //   1                      2     3           4             5       6                     7         8       9                   10                    11             12          13                   14
+      '^(\\s+\$)|^(?:[\\r\\n])?(?:((A[0-9]+|\\*) ([a-z]+)(?: \\[(.*?)(?: (.*))?\\])?(?: ([^{\\r\\n]+?))?)|(\\* ([0-9]+) (EXISTS|RECENT|EXPUNGE|FETCH)(?: ([^\\r\\n]+?))?)|(\\+(?: ([^{\\r\\n]+?)?)?))(?: {([0-9]+)})? ?\$',
       caseSensitive: false);
 
   /// [client] must be the instance the analyser was instantiated in
@@ -65,7 +67,7 @@ class _ImapAnalyzer {
     if (_skipAnalysis) {
       // if first line, remove \r\n from literal
       line = _literal.isEmpty
-          ? RegExp("^\\r?\\n?(.*)\$").firstMatch(line).group(1)
+          ? new RegExp("^\\r?\\n?(.*)\$").firstMatch(line).group(1)
           : line;
       line = _addLineToLiteral(line);
       if (line.isEmpty) {
@@ -132,9 +134,9 @@ class _ImapAnalyzer {
   void _handleStandardResponse(Match match) {
     bool isTagged = match.group(3) != '*';
     String id = match.group(4).toUpperCase();
-    String type = id == 'OK' ? 'notices'
-                : id == 'NO' ? 'warnings'
-                : id == 'BAD' ? 'errors' : '';
+    String type = id == 'OK'
+        ? 'notices'
+        : id == 'NO' ? 'warnings' : id == 'BAD' ? 'errors' : '';
     if (type.isNotEmpty) {
       _results[type].add(_getGroupValue(match, 7)); // reason for ok/bad/no
     } else {
@@ -157,9 +159,9 @@ class _ImapAnalyzer {
     }
     if (_isGreeting) {
       _isGreeting = false;
-      _client._connectionState = id == 'PREAUTH' ? ImapClient.stateAuthenticated
-                               : id == 'BYE' ? ImapClient.stateClosed
-                               : ImapClient.stateConnected;
+      _client._connectionState = id == 'PREAUTH'
+          ? ImapClient.stateAuthenticated
+          : id == 'BYE' ? ImapClient.stateClosed : ImapClient.stateConnected;
     }
   }
 
@@ -261,7 +263,7 @@ class _ImapAnalyzer {
       _literals.add(_literal);
       _literal = '';
       // Command continue requests must be handled immediately
-      if(_getTypeFromMatch(_tempMatch) == "continue") _handleTemp();
+      if (_getTypeFromMatch(_tempMatch) == "continue") _handleTemp();
     }
     return rest;
   }

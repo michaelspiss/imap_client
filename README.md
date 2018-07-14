@@ -47,4 +47,4 @@ client.existsHandler = (String mailboxName, int messageNumber) { ... }
 ```
 
 ## Features and bugs
-Please file feature requests and bugs at the [issue tracker](https://github.com/michaelspiss/ImapClient/issues).
+Please file feature requests and bugs at the [issue tracker](https://github.com/michaelspiss/imap_client/issues).

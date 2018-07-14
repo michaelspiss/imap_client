@@ -2,9 +2,11 @@ part of imap_client;
 
 /// Handles update responses like EXISTS, EXPUNGE, RECENT
 typedef void UpdateHandler(String mailboxName, int messageNumber);
+
 /// Handles fetch responses
-typedef void FetchHandler(String mailboxName, int messageNumber,
-    Map<String, String> attributes);
+typedef void FetchHandler(
+    String mailboxName, int messageNumber, Map<String, String> attributes);
+
 /// Handles messages sent by the server.
 typedef void MessageHandler(String info);
 
@@ -99,7 +101,7 @@ class ImapClient {
   void _responseHandler(response) {
     response = new String.fromCharCodes(response);
     List<String> lines = response.split(new RegExp('(?=\r\n|\n|\r)'));
-    _lines.addStream(Stream.fromIterable(lines));
+    _lines.addStream(new Stream.fromIterable(lines));
   }
 
   /// Checks if an authentication method is supported. Capitalization is ignored
@@ -237,7 +239,7 @@ class ImapClient {
     _serverCapabilities = ImapConverter.imapListToDartList(capabilities);
     _serverSupportedAuthMethods.clear();
     _serverCapabilities.removeWhere((item) {
-      if (item.startsWith(RegExp('AUTH=', caseSensitive: false))) {
+      if (item.startsWith(new RegExp('AUTH=', caseSensitive: false))) {
         _serverSupportedAuthMethods.add(item.substring(5));
         return true;
       }
@@ -543,7 +545,7 @@ class ImapClient {
   /// Returns a list of messages that match the [searchCriteria].
   ///
   /// [charset] can be used to define a specific encoding that should be used.
-  /// If the charset is not supported, the response code [BADCHARSET] will be
+  /// If the charset is not supported, the response code BADCHARSET will be
   /// sent along with a NO response.
   /// Matching is case insensitive. Please look at the rfc for a full list of
   /// defined search keys.

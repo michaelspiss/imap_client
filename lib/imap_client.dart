@@ -1,3 +1,4 @@
+/// This library provides the interface to get emails via the imap protocol.
 library imap_client;
 
 import 'dart:io';
