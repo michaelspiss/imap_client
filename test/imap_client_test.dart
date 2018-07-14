@@ -56,7 +56,7 @@ void main() {
           }),
           completes);
       server.hasConnection.then((_) {
-        Future.delayed(Duration(seconds: 1), () {
+        new Future.delayed(new Duration(seconds: 1), () {
           greetingSent = true;
           server.client.write("* OK\r\n");
         });

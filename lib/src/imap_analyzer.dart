@@ -67,7 +67,7 @@ class _ImapAnalyzer {
     if (_skipAnalysis) {
       // if first line, remove \r\n from literal
       line = _literal.isEmpty
-          ? RegExp("^\\r?\\n?(.*)\$").firstMatch(line).group(1)
+          ? new RegExp("^\\r?\\n?(.*)\$").firstMatch(line).group(1)
           : line;
       line = _addLineToLiteral(line);
       if (line.isEmpty) {

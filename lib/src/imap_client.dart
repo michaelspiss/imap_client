@@ -101,7 +101,7 @@ class ImapClient {
   void _responseHandler(response) {
     response = new String.fromCharCodes(response);
     List<String> lines = response.split(new RegExp('(?=\r\n|\n|\r)'));
-    _lines.addStream(Stream.fromIterable(lines));
+    _lines.addStream(new Stream.fromIterable(lines));
   }
 
   /// Checks if an authentication method is supported. Capitalization is ignored
@@ -239,7 +239,7 @@ class ImapClient {
     _serverCapabilities = ImapConverter.imapListToDartList(capabilities);
     _serverSupportedAuthMethods.clear();
     _serverCapabilities.removeWhere((item) {
-      if (item.startsWith(RegExp('AUTH=', caseSensitive: false))) {
+      if (item.startsWith(new RegExp('AUTH=', caseSensitive: false))) {
         _serverSupportedAuthMethods.add(item.substring(5));
         return true;
       }
