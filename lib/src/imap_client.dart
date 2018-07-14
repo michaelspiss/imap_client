@@ -543,7 +543,7 @@ class ImapClient {
   /// Returns a list of messages that match the [searchCriteria].
   ///
   /// [charset] can be used to define a specific encoding that should be used.
-  /// If the charset is not supported, the response code [BADCHARSET] will be
+  /// If the charset is not supported, the response code BADCHARSET will be
   /// sent along with a NO response.
   /// Matching is case insensitive. Please look at the rfc for a full list of
   /// defined search keys.
