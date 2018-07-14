@@ -6,5 +6,5 @@ dart:
 
 dart-task:
 - test
-- dartanalyzer: --fatal-warnings lib
 - dartfmt
+- dartanalyzer: --fatal-warnings lib
