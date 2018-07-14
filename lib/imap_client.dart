@@ -21,6 +21,7 @@ part 'src/imap_converter.dart';
 
 Logger _logger = new Logger('imap_client');
 
+/// Prints the imap client's debug log.
 void printImapClientDebugLog() {
   _logger.onRecord.listen(print);
 }
