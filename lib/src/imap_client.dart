@@ -592,12 +592,13 @@ class ImapClient {
     return sendCommand('COPY $sequenceSet $mailbox');
   }
 
-  /// Converts message sequence numbers to unique identifiers.
+  /// Converts the next command's message sequence numbers to unique identifiers
   ///
   /// Can be used with [copy], [fetch] or [store] -> sequence numbers are now
   /// unique identifiers ([fetch] still sends message sequence numbers, but with
   /// additional "UID"). [search] returns UIDs instead of sequence numbers, but
   /// command arguments do not change.
+  /// Usage: `client.uid().copy(...);`
   /// Defined in RFC 3501 (Imap v4rev1)
   ImapClient uid() {
     _commandUseUid = true;
