@@ -1,3 +1,8 @@
+## 0.1.3
+
+- Update test package to latest version
+- Do travis tests on stable, now that dart v2 is out of dev
+
 ## 0.1.2
 
 - Implement logging. Use printImapClientDebugLog() to display it.
