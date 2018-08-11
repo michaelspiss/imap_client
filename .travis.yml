@@ -1,8 +1,8 @@
 language: dart
 
 dart:
+- stable
 - dev
-- "dev/release/2.0.0-dev.63.0"
 
 dart_task:
 - test
