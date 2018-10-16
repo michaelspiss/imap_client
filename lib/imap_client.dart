@@ -7,17 +7,7 @@ import 'dart:convert';
 
 import 'package:logging/logging.dart';
 
-part 'src/imap_connection.dart';
 
-part 'src/imap_response.dart';
-
-part 'src/imap_analyzer.dart';
-
-part 'src/auth_methods.dart';
-
-part 'src/imap_client.dart';
-
-part 'src/imap_converter.dart';
 
 Logger _logger = new Logger('imap_client');
 
