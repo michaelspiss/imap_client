@@ -1,7 +1,6 @@
 part of imap_client;
 
 class ImapEngine {
-
   /// The socket used for communication with the imap server
   Socket _socket;
 
