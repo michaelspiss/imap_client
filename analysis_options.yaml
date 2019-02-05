@@ -4,6 +4,10 @@ analyzer:
 #     - path/to/excluded/files/**
 
 # Lint rules and documentation, see http://dart-lang.github.io/linter/lints
+
+# Import pedantic rules
+include: package:pedantic/analysis_options.yaml
+
 linter:
   rules:
     - cancel_subscriptions
