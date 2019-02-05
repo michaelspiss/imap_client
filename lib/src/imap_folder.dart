@@ -7,6 +7,7 @@ class ImapFolder {
   String _path;
 
   get name => _name;
+
   get path => _path;
 
   ImapFolder(this.engine, String name, String path) {
