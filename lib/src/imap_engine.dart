@@ -9,9 +9,18 @@ class ImapEngine {
 
   ImapEngine(Socket _connection) {
     _socket = _connection;
-    _socket.listen((response) {
-      if (_isLoggerActive) _logger.info("S: " + String.fromCharCodes(response));
-    });
-    _buffer = ImapBuffer.bindToStream(_socket);
+    _buffer = new ImapBuffer();
+
+    _socket.listen(
+        (response) {
+          _buffer.addAll(response);
+          if (_isLoggerActive)
+            _logger.info("S: " + String.fromCharCodes(response));
+        },
+        cancelOnError: true,
+        onDone: () {
+          _logger.info("Connection has been terminated by the server.");
+          _socket.destroy();
+        });
   }
 }

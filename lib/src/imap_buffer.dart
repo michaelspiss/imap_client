@@ -29,16 +29,14 @@ class ImapBuffer {
     13 // "\r"
   ];
 
-  /// Binds the buffer to a specific [source]
-  ImapBuffer.bindToStream(Stream source) {
-    source.listen((response) {
-      _buffer.addAll(response);
-      if (_bufferAwaiter != null &&
-          _bufferAwaiter.awaitedPosition <= _buffer.length - 1) {
-        _bufferAwaiter.completer.complete();
-        _bufferAwaiter = null;
-      }
-    });
+  /// Adds data to the buffer
+  void addAll(Iterable<int> data) {
+    _buffer.addAll(data);
+    if (_bufferAwaiter != null &&
+        _bufferAwaiter.awaitedPosition <= _buffer.length - 1) {
+      _bufferAwaiter.completer.complete();
+      _bufferAwaiter = null;
+    }
   }
 
   /// Returns the whole line as string

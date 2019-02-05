@@ -8,7 +8,10 @@ void main() {
 
   setUp(() {
     _controller = new StreamController<List<int>>.broadcast();
-    _buffer = ImapBuffer.bindToStream(_controller.stream);
+    _buffer = ImapBuffer();
+    _controller.stream.listen((data) {
+      _buffer.addAll(data);
+    });
   });
 
   group('readLine tests', () {
