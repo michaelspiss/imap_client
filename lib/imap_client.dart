@@ -20,6 +20,8 @@ part "src/imap_word.dart";
 
 part "src/imap_folder.dart";
 
+part "src/imap_server.dart";
+
 part "src/exceptions/invalid_format.dart";
 
 Logger _logger = new Logger('imap_client');
