@@ -2,7 +2,7 @@ part of imap_client;
 
 /// Buffers all responses sent by the server and allows for read operations
 class ImapBuffer {
-  /// Buffers responses by the server sent
+  /// Buffers responses sent by the server
   List<int> _buffer = <int>[];
 
   /// The position the reader is currently at in [_buffer]
