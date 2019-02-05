@@ -193,7 +193,7 @@ class ImapBuffer {
   /// Gets the char code - set by [_bufferPosition] or a custom position
   ///
   /// [proceed] increases the [_bufferPosition] by one.
-  Future<int> _getCharCode({proceed = false, position = -1}) async {
+  Future<int> _getCharCode({bool proceed = false, int position = -1}) async {
     if (position == -1) position = _bufferPosition;
     if (position >= _buffer.length) {
       _bufferAwaiter = new _BufferAwaiter(new Completer(), position);
