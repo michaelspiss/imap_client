@@ -3,7 +3,7 @@ part of imap_client;
 /// Main point for interaction with the server
 ///
 /// Handles commands that are not folder ("mailbox") specific and selects
-class ImapServer {
+class ImapClient {
   ImapEngine _engine;
 
   /// Host address the server is connected to
@@ -21,7 +21,7 @@ class ImapServer {
 
   bool get secure => _secure;
 
-  /// Connects the server model to the actual server
+  /// Connects to the actual server
   ///
   /// [host] and [port] define the server's address. If [secure] is true,
   /// a secure (ssl) socket will be used, an unencrypted one otherwise.

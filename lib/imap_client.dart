@@ -20,7 +20,7 @@ part "src/imap_word.dart";
 
 part "src/imap_folder.dart";
 
-part "src/imap_server.dart";
+part "src/imap_client.dart";
 
 part "src/exceptions/invalid_format.dart";
 
