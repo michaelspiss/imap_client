@@ -23,4 +23,16 @@ class ImapEngine {
           _socket.destroy();
         });
   }
+
+  /// Takes data and sends it to the server as-is.
+  void write(Object data) {
+    _socket.write(data);
+    if (_isLoggerActive) _logger.info("C: " + data.toString());
+  }
+
+  /// Takes data and sends it to the server with appended CRLF.
+  void writeln(Object data) {
+    _socket.write(data.toString() + "\r\n");
+    if (_isLoggerActive) _logger.info("C: " + data.toString() + "\r\n");
+  }
 }
