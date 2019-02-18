@@ -55,6 +55,13 @@ class ImapBuffer {
     return String.fromCharCodes(charCodes);
   }
 
+  /// Skips all characters in this line
+  Future<void> skipLine({autoReleaseBuffer = true}) async {
+    while (await _getCharCode(proceed: true) != 10); // "skip until behind \n"
+    if (autoReleaseBuffer) _releaseUsedBuffer();
+    return;
+  }
+
   /// Reads the next word from [_buffer] and returns it via an [ImapWord] object
   ///
   /// Automatically figures out which type the next word is. Skips whitespaces

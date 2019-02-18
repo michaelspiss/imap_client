@@ -39,6 +39,21 @@ void main() {
     });
   });
 
+  group('skipLine tests', () {
+    test('reads exactly one line', () async {
+      var list = _getCharCodeListFromString("some line\nsome other line\n");
+      _controller.add(list);
+      await _buffer.skipLine();
+      expect(await _buffer.readLine(), "some other line");
+    });
+    test('Not-releasing the buffer does not cause weird behavior', () async {
+      var list = _getCharCodeListFromString("some line\nsome other line\n");
+      _controller.add(list);
+      await _buffer.skipLine(autoReleaseBuffer: false);
+      expect(await _buffer.readLine(), "some other line");
+    });
+  });
+
   group("readQuotedString tests", () {
     test('Can read single quoted string', () async {
       var list =
