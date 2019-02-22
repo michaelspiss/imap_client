@@ -16,29 +16,29 @@ void main() {
 
   group('readLine tests', () {
     test('Can read one line', () async {
-      var list = _getCharCodeListFromString("some line\nsome other line\n");
+      var list = "some line\nsome other line\n".codeUnits;
       _controller.add(list);
       expect(await _buffer.readLine(), "some line");
     });
     test('Can read two lines', () async {
-      var list = _getCharCodeListFromString("some line\nsome other line\n");
+      var list = "some line\nsome other line\n".codeUnits;
       _controller.add(list);
       expect(await _buffer.readLine(), "some line");
       expect(await _buffer.readLine(), "some other line");
     });
     test('Removes whitespaces at the beginning', () async {
-      var list = _getCharCodeListFromString(" \r\tsome line\n");
+      var list = " \r\tsome line\n".codeUnits;
       _controller.add(list);
       expect(await _buffer.readLine(), "some line");
     });
     test('Not-releasing the buffer does not cause weird behavior', () async {
-      var list = _getCharCodeListFromString("12345\n67890\n");
+      var list = "12345\n67890\n".codeUnits;
       _controller.add(list);
       await _buffer.readLine(autoReleaseBuffer: false);
       expect(await _buffer.readLine(autoReleaseBuffer: false), "67890");
     });
     test('Can read empty line', () async {
-      var list = _getCharCodeListFromString("\n\n");
+      var list = "\n\n".codeUnits;
       _controller.add(list);
       expect(await _buffer.readLine(), "");
       expect(await _buffer.readLine(), "");
@@ -47,13 +47,13 @@ void main() {
 
   group('skipLine tests', () {
     test('reads exactly one line', () async {
-      var list = _getCharCodeListFromString("some line\nsome other line\n");
+      var list = "some line\nsome other line\n".codeUnits;
       _controller.add(list);
       await _buffer.skipLine();
       expect(await _buffer.readLine(), "some other line");
     });
     test('Not-releasing the buffer does not cause weird behavior', () async {
-      var list = _getCharCodeListFromString("some line\nsome other line\n");
+      var list = "some line\nsome other line\n".codeUnits;
       _controller.add(list);
       await _buffer.skipLine(autoReleaseBuffer: false);
       expect(await _buffer.readLine(), "some other line");
@@ -63,19 +63,19 @@ void main() {
   group("readQuotedString tests", () {
     test('Can read single quoted string', () async {
       var list =
-          _getCharCodeListFromString("\"some string\" \"some other string\"");
+          "\"some string\" \"some other string\"".codeUnits;
       _controller.add(list);
       expect((await _buffer.readQuotedString()).value, "some string");
     });
     test('Has correct type', () async {
       var list =
-          _getCharCodeListFromString("\"some string\" \"some other string\"");
+          "\"some string\" \"some other string\"".codeUnits;
       _controller.add(list);
       expect((await _buffer.readQuotedString()).type, ImapWordType.string);
     });
     test('Can read two quoted strings', () async {
       var list =
-          _getCharCodeListFromString("\"some string\" \"some other string\"");
+          "\"some string\" \"some other string\"".codeUnits;
       _controller.add(list);
       expect((await _buffer.readQuotedString()).value, "some string");
       await _buffer.skipWhitespaces();
@@ -83,7 +83,7 @@ void main() {
     });
     test("Throws InvalidFormatException if string doesn't start with quotes",
         () async {
-      var list = _getCharCodeListFromString("missing quotes\"");
+      var list = "missing quotes\"".codeUnits;
       _controller.add(list);
       expect(await () async => await _buffer.readQuotedString(),
           throwsA(new TypeMatcher<InvalidFormatException>()));
@@ -92,22 +92,22 @@ void main() {
 
   group("readLiteral tests", () {
     test('Can read single char', () async {
-      var list = _getCharCodeListFromString("{1}\na");
+      var list = "{1}\na".codeUnits;
       _controller.add(list);
       expect((await _buffer.readLiteral()).value, "a");
     });
     test('Has correct type', () async {
-      var list = _getCharCodeListFromString("{1}\na");
+      var list = "{1}\na".codeUnits;
       _controller.add(list);
       expect((await _buffer.readLiteral()).type, ImapWordType.string);
     });
     test('Can read multiple chars including linebreaks and specials', () async {
-      var list = _getCharCodeListFromString("{19}\n12@4\n6\r\t9NIL{[]}()0");
+      var list = "{19}\n12@4\n6\r\t9NIL{[]}()0".codeUnits;
       _controller.add(list);
       expect((await _buffer.readLiteral()).value, "12@4\n6\r\t9NIL{[]}()0");
     });
     test('Can read multiple literals', () async {
-      var list = _getCharCodeListFromString("{1}\n1 {1}\n2");
+      var list = "{1}\n1 {1}\n2".codeUnits;
       _controller.add(list);
       expect((await _buffer.readLiteral()).value, "1");
       await _buffer.skipWhitespaces();
@@ -116,7 +116,7 @@ void main() {
     test(
         'Throws InvalidFormatException if it does not start with curly bracket',
         () async {
-      var list = _getCharCodeListFromString("missing bracket");
+      var list = "missing bracket".codeUnits;
       _controller.add(list);
       expect(await () async => await _buffer.readLiteral(),
           throwsA(new TypeMatcher<InvalidFormatException>()));
@@ -125,22 +125,22 @@ void main() {
 
   group("readFlag tests", () {
     test('Can read single flag', () async {
-      var list = _getCharCodeListFromString("\\Flag ");
+      var list = "\\Flag ".codeUnits;
       _controller.add(list);
       expect((await _buffer.readFlag()).value, "Flag");
     });
     test('Has correct type', () async {
-      var list = _getCharCodeListFromString("\\Flag ");
+      var list = "\\Flag ".codeUnits;
       _controller.add(list);
       expect((await _buffer.readFlag()).type, ImapWordType.flag);
     });
     test('Does not include non atom chars', () async {
-      var list = _getCharCodeListFromString("\\Flag] ");
+      var list = "\\Flag] ".codeUnits;
       _controller.add(list);
       expect((await _buffer.readFlag()).value, "Flag");
     });
     test('Can read multiple flags', () async {
-      var list = _getCharCodeListFromString("\\FlagOne \\FlagTwo ");
+      var list = "\\FlagOne \\FlagTwo ".codeUnits;
       _controller.add(list);
       expect((await _buffer.readFlag()).value, "FlagOne");
       await _buffer.skipWhitespaces();
@@ -148,7 +148,7 @@ void main() {
     });
     test('Throws InvalidFormatException if it does not start with backslash',
         () async {
-      var list = _getCharCodeListFromString("missing backslash");
+      var list = "missing backslash".codeUnits;
       _controller.add(list);
       expect(await () async => await _buffer.readFlag(),
           throwsA(new TypeMatcher<InvalidFormatException>()));
@@ -157,17 +157,17 @@ void main() {
 
   group("readAtom tests", () {
     test('Can read single char', () async {
-      var list = _getCharCodeListFromString("a ");
+      var list = "a ".codeUnits;
       _controller.add(list);
       expect((await _buffer.readAtom()).value, "a");
     });
     test('Has correct type', () async {
-      var list = _getCharCodeListFromString("a ");
+      var list = "a ".codeUnits;
       _controller.add(list);
       expect((await _buffer.readAtom()).type, ImapWordType.atom);
     });
     test('Can read multiple atoms', () async {
-      var list = _getCharCodeListFromString("A0001 OK ");
+      var list = "A0001 OK ".codeUnits;
       _controller.add(list);
       expect((await _buffer.readAtom()).value, "A0001");
       await _buffer.skipWhitespaces();
@@ -175,7 +175,7 @@ void main() {
     });
     test('Throws InvalidFormatException if it starts with illegal character',
         () async {
-      var list = _getCharCodeListFromString("\\");
+      var list = "\\".codeUnits;
       _controller.add(list);
       expect(await () async => await _buffer.readAtom(),
           throwsA(new TypeMatcher<InvalidFormatException>()));
@@ -184,7 +184,7 @@ void main() {
 
   group("skipWhitespaces tests", () {
     test("skipWhitespaces skips all whitespaces", () async {
-      var list = _getCharCodeListFromString(" \r\tOK ");
+      var list = " \r\tOK ".codeUnits;
       _controller.add(list);
       await _buffer.skipWhitespaces();
       expect((await _buffer.readAtom()).value, "OK");
@@ -193,43 +193,43 @@ void main() {
 
   group("readWord tests", () {
     test("readWord skips whitespaces at beginning", () async {
-      var list = _getCharCodeListFromString(" \r\tOK ");
+      var list = " \r\tOK ".codeUnits;
       _controller.add(list);
       expect((await _buffer.readWord()).value, "OK");
     });
     test("readWord recognizes special char", () async {
-      var list = _getCharCodeListFromString("* ");
+      var list = "* ".codeUnits;
       _controller.add(list);
       expect((await _buffer.readWord()).type, ImapWordType.tokenAsterisk);
     });
     test("readWord recognizes special char without following whitespace",
         () async {
-      var list = _getCharCodeListFromString("*A ");
+      var list = "*A ".codeUnits;
       _controller.add(list);
       expect((await _buffer.readWord()).type, ImapWordType.tokenAsterisk);
     });
     test("readWord recognizes quoted string", () async {
-      var list = _getCharCodeListFromString("\"some string\"");
+      var list = "\"some string\"".codeUnits;
       _controller.add(list);
       expect((await _buffer.readWord()).type, ImapWordType.string);
     });
     test("readWord recognizes literal", () async {
-      var list = _getCharCodeListFromString("{1}\n1");
+      var list = "{1}\n1".codeUnits;
       _controller.add(list);
       expect((await _buffer.readWord()).type, ImapWordType.string);
     });
     test("readWord recognizes flag", () async {
-      var list = _getCharCodeListFromString("\\Flag ");
+      var list = "\\Flag ".codeUnits;
       _controller.add(list);
       expect((await _buffer.readWord()).type, ImapWordType.flag);
     });
     test("readWord recognizes atom", () async {
-      var list = _getCharCodeListFromString("OK ");
+      var list = "OK ".codeUnits;
       _controller.add(list);
       expect((await _buffer.readWord()).type, ImapWordType.atom);
     });
     test("readWord recognizes multiple words after another", () async {
-      var list = _getCharCodeListFromString("\"some string\" {1}\n1 OK ");
+      var list = "\"some string\" {1}\n1 OK ".codeUnits;
       _controller.add(list);
       expect((await _buffer.readWord()).value, "some string");
       expect((await _buffer.readWord()).value, "1");
@@ -239,7 +239,7 @@ void main() {
 
   group("unread tests", () {
     test("unread can unread single newline", () async {
-      var list = _getCharCodeListFromString("some string\nsome other string\n");
+      var list = "some string\nsome other string\n".codeUnits;
       _controller.add(list);
       expect((await _buffer.readLine()), "some string");
       _buffer.unread("\n");
@@ -247,7 +247,7 @@ void main() {
       expect((await _buffer.readLine()), "some other string");
     });
     test("unread can unread line", () async {
-      var list = _getCharCodeListFromString("some string\nsome other string\n");
+      var list = "some string\nsome other string\n".codeUnits;
       _controller.add(list);
       expect((await _buffer.readLine()), "some string");
       _buffer.unread("unread\n");
@@ -255,19 +255,11 @@ void main() {
       expect((await _buffer.readLine()), "some other string");
     });
     test("unread can unread nothing", () async {
-      var list = _getCharCodeListFromString("some string\nsome other string\n");
+      var list = "some string\nsome other string\n".codeUnits;
       _controller.add(list);
       expect((await _buffer.readLine()), "some string");
       _buffer.unread("");
       expect((await _buffer.readLine()), "some other string");
     });
   });
-}
-
-List<int> _getCharCodeListFromString(String input) {
-  List<int> output = <int>[];
-  for (int i = 0; i < input.length; i++) {
-    output.add(input.codeUnitAt(i));
-  }
-  return output;
 }
