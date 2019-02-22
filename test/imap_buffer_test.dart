@@ -37,6 +37,12 @@ void main() {
       await _buffer.readLine(autoReleaseBuffer: false);
       expect(await _buffer.readLine(autoReleaseBuffer: false), "67890");
     });
+    test('Can read empty line', () async {
+      var list = _getCharCodeListFromString("\n\n");
+      _controller.add(list);
+      expect(await _buffer.readLine(), "");
+      expect(await _buffer.readLine(), "");
+    });
   });
 
   group('skipLine tests', () {
@@ -228,6 +234,32 @@ void main() {
       expect((await _buffer.readWord()).value, "some string");
       expect((await _buffer.readWord()).value, "1");
       expect((await _buffer.readWord()).value, "OK");
+    });
+  });
+
+  group("unread tests", () {
+    test("unread can unread single newline", () async {
+      var list = _getCharCodeListFromString("some string\nsome other string\n");
+      _controller.add(list);
+      expect((await _buffer.readLine()), "some string");
+      _buffer.unread("\n");
+      expect((await _buffer.readLine()), "");
+      expect((await _buffer.readLine()), "some other string");
+    });
+    test("unread can unread line", () async {
+      var list = _getCharCodeListFromString("some string\nsome other string\n");
+      _controller.add(list);
+      expect((await _buffer.readLine()), "some string");
+      _buffer.unread("unread\n");
+      expect((await _buffer.readLine()), "unread");
+      expect((await _buffer.readLine()), "some other string");
+    });
+    test("unread can unread nothing", () async {
+      var list = _getCharCodeListFromString("some string\nsome other string\n");
+      _controller.add(list);
+      expect((await _buffer.readLine()), "some string");
+      _buffer.unread("");
+      expect((await _buffer.readLine()), "some other string");
     });
   });
 }

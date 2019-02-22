@@ -49,8 +49,10 @@ class ImapBuffer {
       charCodes.add(await _getCharCode(proceed: true));
     _bufferPosition++; // skip over newline character
     // trim trailing whitespaces
-    Iterable<int> reversed = charCodes.reversed;
-    while (await _isWhitespace(reversed.first)) charCodes.removeLast();
+    if(charCodes.isNotEmpty) {
+      Iterable<int> reversed = charCodes.reversed;
+      while (await _isWhitespace(reversed.first)) charCodes.removeLast();
+    }
     if (autoReleaseBuffer) _releaseUsedBuffer();
     return String.fromCharCodes(charCodes);
   }
@@ -152,6 +154,15 @@ class ImapBuffer {
     return value == "NIL"
         ? ImapWord(ImapWordType.nil, value)
         : ImapWord(ImapWordType.atom, value);
+  }
+
+  /// Un-reads a string
+  ///
+  /// Be careful, this might lead to unexpected behaviour, namely double reads,
+  /// when used with reads that did not release the buffer! Also be sure to not
+  /// interfere with imap's grammar!
+  void unread(String string) {
+    _buffer.insertAll(_bufferPosition, string.codeUnits);
   }
 
   /*
