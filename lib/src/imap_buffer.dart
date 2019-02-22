@@ -90,6 +90,7 @@ class ImapBuffer {
   ///
   /// Must start with "\""
   Future<ImapWord> readQuotedString({autoReleaseBuffer = true}) async {
+    while (await _isWhitespace()) _bufferPosition++;
     if (await _getCharCode() != 34) // "\""
       throw new InvalidFormatException(
           "Expected quote at beginning of quoted string");
@@ -106,6 +107,7 @@ class ImapBuffer {
   ///
   /// Must start with "{"
   Future<ImapWord> readLiteral({autoReleaseBuffer = true}) async {
+    while (await _isWhitespace()) _bufferPosition++;
     if (await _getCharCode() != 123) // "{"
       throw new InvalidFormatException(
           "Expected open curly bracket at beginning of literal");
@@ -130,6 +132,7 @@ class ImapBuffer {
   ///
   /// Must start with "\\"
   Future<ImapWord> readFlag({autoReleaseBuffer = true}) async {
+    while (await _isWhitespace()) _bufferPosition++;
     if (await _getCharCode() != 92) // "\\"
       throw new InvalidFormatException("Expected \\ before flag name");
     _bufferPosition++;
@@ -144,6 +147,7 @@ class ImapBuffer {
   ///
   /// Detects if it is NIL and sets the type accordingly.
   Future<ImapWord> readAtom({autoReleaseBuffer = true}) async {
+    while (await _isWhitespace()) _bufferPosition++;
     List<int> charCodes = <int>[];
     if (!await _isValidAtomCharCode())
       throw new InvalidFormatException("Atom starts with illegal character");
