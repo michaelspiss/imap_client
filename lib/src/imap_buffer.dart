@@ -49,7 +49,7 @@ class ImapBuffer {
       charCodes.add(await _getCharCode(proceed: true));
     _bufferPosition++; // skip over newline character
     // trim trailing whitespaces
-    if(charCodes.isNotEmpty) {
+    if (charCodes.isNotEmpty) {
       Iterable<int> reversed = charCodes.reversed;
       while (await _isWhitespace(reversed.first)) charCodes.removeLast();
     }
