@@ -24,6 +24,10 @@ part "src/imap_client.dart";
 
 part "src/exceptions/invalid_format.dart";
 
+part "src/exceptions/missing_command.dart";
+
+part "src/exceptions/syntax_error.dart";
+
 Logger _logger = new Logger('imap_client');
 bool _isLoggerActive = false;
 
