@@ -2,16 +2,14 @@ part of imap_client;
 
 /// Represents a folder ("mailbox"), "selected state" commands are called here
 class ImapFolder {
-  final ImapEngine engine;
+  final ImapEngine _engine;
+
+  /// Folder ("mailbox") name - acts as id
   String _name;
-  String _path;
 
   get name => _name;
 
-  get path => _path;
-
-  ImapFolder(this.engine, String name, String path) {
+  ImapFolder(this._engine, String name) {
     _name = name;
-    _path = path;
   }
 }
