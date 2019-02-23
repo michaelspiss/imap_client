@@ -6,4 +6,9 @@ class ImapWord {
   final String value;
 
   ImapWord(this.type, this.value);
+
+  @override
+  String toString() {
+    return "[Word " + type.toString() + "] " + value;
+  }
 }
