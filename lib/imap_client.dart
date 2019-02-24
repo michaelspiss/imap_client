@@ -3,6 +3,8 @@ library imap_client;
 
 import 'dart:io';
 import 'dart:async';
+import 'dart:collection';
+import 'dart:convert';
 
 import 'package:logging/logging.dart';
 
@@ -21,6 +23,10 @@ part "src/imap_word.dart";
 part "src/imap_folder.dart";
 
 part "src/imap_client.dart";
+
+part "src/imap_sasl_mechanism.dart";
+
+part "src/imap_auth_methods.dart";
 
 part "src/exceptions/invalid_format.dart";
 
