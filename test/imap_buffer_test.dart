@@ -262,4 +262,46 @@ void main() {
       expect((await _buffer.readLine()), "some other string");
     });
   });
+
+  group("readInteger tests", () {
+    test("readInteger reads single integer", () async {
+      var list = "1234567890\n";
+      _controller.add(list.codeUnits);
+      expect(await _buffer.readInteger(), 1234567890);
+    });
+    test("readInteger reads integer with appended zeros", () async {
+      var list = "00001234567890\n";
+      _controller.add(list.codeUnits);
+      expect(await _buffer.readInteger(), 1234567890);
+    });
+    test("readInteger reads two integers", () async {
+      var list = "1234567890 123\n";
+      _controller.add(list.codeUnits);
+      expect(await _buffer.readInteger(), 1234567890);
+      expect(await _buffer.readInteger(), 123);
+    });
+    test("readInteger reads negative integers", () async {
+      var list = "-1234567890\n";
+      _controller.add(list.codeUnits);
+      expect(await _buffer.readInteger(), -1234567890);
+    });
+    test("readInteger throws exception if read value is not an int", () async {
+      var list = "notAnumber\n";
+      _controller.add(list.codeUnits);
+      expect(await () async => await _buffer.readInteger(),
+          throwsA(new TypeMatcher<InvalidFormatException>()));
+    });
+    test("readInteger throws exception if number has invalid char", () async {
+      var list = "123A456\n";
+      _controller.add(list.codeUnits);
+      expect(await () async => await _buffer.readInteger(),
+          throwsA(new TypeMatcher<InvalidFormatException>()));
+    });
+    test("readInteger throws exception if number is not an int", () async {
+      var list = "1.00\n";
+      _controller.add(list.codeUnits);
+      expect(await () async => await _buffer.readInteger(),
+          throwsA(new TypeMatcher<InvalidFormatException>()));
+    });
+  });
 }

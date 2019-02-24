@@ -160,6 +160,25 @@ class ImapBuffer {
         : ImapWord(ImapWordType.atom, value);
   }
 
+  /// Reads atom and tries to parse it as integer. Does not return [ImapWord]!
+  ///
+  /// Throws [InvalidFormatException] when string is not an int. Does not return
+  /// [ImapWord], but the [int] itself. This is, because 1) [ImapWord] should
+  /// only return strings, 2) this function only extends readAtom() and is not
+  /// an actual read method itself, 3) the type difference can be concluded from
+  /// the method's name.
+  Future<int> readInteger({autoReleaseBuffer = true}) async {
+    ImapWord word = await readAtom();
+    if (word.type != ImapWordType.atom)
+      throw new InvalidFormatException(
+          "Trying to parse integer from atom, but got " + word.toString());
+    int number = int.tryParse(word.value);
+    if (number == null)
+      throw new InvalidFormatException(
+          "Trying to read integer, but got " + word.toString());
+    return number;
+  }
+
   /// Un-reads a string
   ///
   /// Be careful, this might lead to unexpected behaviour, namely double reads,
