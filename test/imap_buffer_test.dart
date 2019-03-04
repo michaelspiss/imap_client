@@ -62,20 +62,17 @@ void main() {
 
   group("readQuotedString tests", () {
     test('Can read single quoted string', () async {
-      var list =
-          "\"some string\" \"some other string\"".codeUnits;
+      var list = "\"some string\" \"some other string\"".codeUnits;
       _controller.add(list);
       expect((await _buffer.readQuotedString()).value, "some string");
     });
     test('Has correct type', () async {
-      var list =
-          "\"some string\" \"some other string\"".codeUnits;
+      var list = "\"some string\" \"some other string\"".codeUnits;
       _controller.add(list);
       expect((await _buffer.readQuotedString()).type, ImapWordType.string);
     });
     test('Can read two quoted strings', () async {
-      var list =
-          "\"some string\" \"some other string\"".codeUnits;
+      var list = "\"some string\" \"some other string\"".codeUnits;
       _controller.add(list);
       expect((await _buffer.readQuotedString()).value, "some string");
       await _buffer.skipWhitespaces();
@@ -234,6 +231,13 @@ void main() {
       expect((await _buffer.readWord()).value, "some string");
       expect((await _buffer.readWord()).value, "1");
       expect((await _buffer.readWord()).value, "OK");
+    });
+    test("readWord throws exception if word is not of expected type", () async {
+      var list = "atom\n";
+      _controller.add(list.codeUnits);
+      expect(
+          await () async => await _buffer.readWord(expected: ImapWordType.eol),
+          throwsA(new TypeMatcher<InvalidFormatException>()));
     });
   });
 

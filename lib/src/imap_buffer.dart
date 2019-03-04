@@ -67,8 +67,10 @@ class ImapBuffer {
   /// Reads the next word from [_buffer] and returns it via an [ImapWord] object
   ///
   /// Automatically figures out which type the next word is. Skips whitespaces
-  /// before the word automatically.
-  Future<ImapWord> readWord({autoReleaseBuffer = true}) async {
+  /// before the word automatically. If a type is [expected] but not read, a
+  /// [InvalidFormatException] is thrown.
+  Future<ImapWord> readWord(
+      {autoReleaseBuffer = true, ImapWordType expected}) async {
     int charAtPosition = await skipWhitespaces();
     ImapWord word;
     if (_specialChars.containsKey(charAtPosition))
@@ -83,6 +85,9 @@ class ImapBuffer {
     else
       word = await readAtom(autoReleaseBuffer: false);
     if (autoReleaseBuffer) _releaseUsedBuffer();
+    if (expected != null && word.type != expected)
+      throw new InvalidFormatException(
+          "Expected " + expected.toString() + ", but got " + word.toString());
     return word;
   }
 
