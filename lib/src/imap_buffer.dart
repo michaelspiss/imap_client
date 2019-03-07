@@ -126,6 +126,7 @@ class ImapBuffer {
     if (word.type != ImapWordType.eol)
       throw new InvalidFormatException("Expected newline before literal text");
     charCodes.clear();
+    await _getCharCode(position: _bufferPosition + length);
     charCodes
         .addAll(_buffer.getRange(_bufferPosition, _bufferPosition + length));
     _bufferPosition = _bufferPosition + length;
