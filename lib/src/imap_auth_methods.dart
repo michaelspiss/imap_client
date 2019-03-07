@@ -2,8 +2,8 @@ part of imap_client;
 
 /// Implements the "plain" authentication mechanism
 class ImapPlainAuth extends ImapSaslMechanism {
-  String _username;
-  String _password;
+  final String _username;
+  final String _password;
 
   ImapPlainAuth(this._username, this._password) : super("plain");
 
@@ -20,8 +20,8 @@ class ImapPlainAuth extends ImapSaslMechanism {
 
 /// Implements the "login" sasl mechanism (not the same as login command!)
 class ImapLoginAuth extends ImapSaslMechanism {
-  String _username;
-  String _password;
+  final String _username;
+  final String _password;
   int _step = 1;
 
   ImapLoginAuth(this._username, this._password) : super("login");
