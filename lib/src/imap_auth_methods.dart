@@ -29,6 +29,7 @@ class ImapLoginAuth extends ImapSaslMechanism {
   @override
   String challenge(String response) {
     if (_step == 1) {
+      _step++;
       return base64.encode(_username.codeUnits);
     } else {
       _isAuthenticated = true;
