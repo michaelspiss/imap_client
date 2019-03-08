@@ -57,21 +57,14 @@ abstract class _ImapCommandable {
   AUTHENTICATED state commands
    */
 
-  Future<ImapTaggedResponse> _sendCommandAuthenticated(String command,
-      {Function(String) onContinue,
-      Map<String, UntaggedHandler> untaggedHandlers}) {
-    _requiresAuthenticated(command);
-    return sendCommand(command,
-        onContinue: onContinue, untaggedHandlers: untaggedHandlers);
-  }
-
   /// Creates a new folder with the given [folderName]
   ///
   /// Folder name may include a hierarchy delimiter if this is supported by the
   /// server.
   /// Sends "CREATE" command, defined in rfc 3501
   Future<ImapTaggedResponse> create(String folderName) {
-    return _sendCommandAuthenticated("CREATE \"" + folderName + "\"");
+    return sendCommand("CREATE \"" + folderName + "\"",
+        before: () => _requiresAuthenticated("CREATE"));
   }
 
   /// Deletes the given [folder] and all messages inside.
@@ -80,15 +73,16 @@ abstract class _ImapCommandable {
   /// folder will no longer be selectable.
   /// Sends "DELETE" command, defined in rfc 3501
   Future<ImapTaggedResponse> delete(ImapFolder folder) {
-    return _sendCommandAuthenticated("DELETE \"" + folder.name + "\"");
+    return sendCommand("DELETE \"" + folder.name + "\"",
+        before: () => _requiresAuthenticated("CREATE"));
   }
 
   /// Renames the given [folder] to [newName]
   ///
   /// Sends "RENAME" command, defined in rfc 3501
   Future<ImapTaggedResponse> rename(ImapFolder folder, String newName) {
-    return _sendCommandAuthenticated(
-        "RENAME \"" + folder.name + "\" \"" + newName + "\"");
+    return sendCommand("RENAME \"" + folder.name + "\" \"" + newName + "\"",
+        before: () => _requiresAuthenticated("CREATE"));
   }
 
   /// Selects folder [folderName] and returns its [ImapFolder] representation instance
@@ -103,11 +97,11 @@ abstract class _ImapCommandable {
   /// Sends "SELECT" or "EXAMINE" commands, defined in rfc 3501
   Future<ImapFolder> select(String folderName,
       {bool readOnly = false, bool dontOpen = false}) async {
-    _requiresAuthenticated("SELECT/EXAMINE");
     ImapFolder folder = new ImapFolder(_engine, folderName);
     if (dontOpen) return folder;
     if (readOnly) folder._isReadWrite = false;
     ImapCommand command = new ImapCommand(_engine, folder, "");
+    command._before = () => _requiresAuthenticated("SELECT/EXAMINE");
     _engine.enqueueCommand(command);
     await _engine.executeCommand(command);
     if (_engine._currentFolder != folder)
@@ -130,10 +124,10 @@ abstract class _ImapCommandable {
   /// Sends "LIST" command, defined in rfc 3501
   Future<List<ImapListResponse>> list(String folderName,
       {String referenceName = ""}) async {
-    _requiresAuthenticated("LIST");
     List<ImapListResponse> list = [];
-    ImapTaggedResponse response = await _sendCommandAuthenticated(
+    ImapTaggedResponse response = await sendCommand(
         "LIST \"" + referenceName + "\" \"" + folderName + "\"",
+        before: () => _requiresAuthenticated("LIST"),
         untaggedHandlers: {
           "LIST": (ImapBuffer buffer, {int number}) async {
             await buffer.readWord(expected: ImapWordType.parenOpen);
@@ -162,12 +156,13 @@ abstract class _ImapCommandable {
   /// Sends "STATUS" command, defined in rfc 3501
   Future<ImapTaggedResponse> status(
       ImapFolder folder, Iterable<ImapStatusDataItem> dataItems) async {
-    return _sendCommandAuthenticated(
+    return sendCommand(
         "STATUS \"" +
             folder.name +
             "\" (" +
             await _statusItemsToString(dataItems) +
             ")",
+        before: () => _requiresAuthenticated("STATUS"),
         untaggedHandlers: {
           "STATUS": (ImapBuffer buffer, {int number}) async {
             await buffer.readWord(expected: ImapWordType.atom);
@@ -211,7 +206,7 @@ abstract class _ImapCommandable {
     String flagsList = flags == null ? "" : " (" + flags.join(" ") + ")";
     String dateTimeString =
         dateTime == null ? "" : " " + _dateTimeToString(dateTime);
-    return _sendCommandAuthenticated(
+    return sendCommand(
         "APPEND \"" +
             folder.name +
             "\"" +
@@ -220,6 +215,7 @@ abstract class _ImapCommandable {
             " {" +
             message.codeUnits.length.toString() +
             "}",
+        before: () => _requiresAuthenticated("APPEND"),
         onContinue: (String serverData) => message);
   }
 

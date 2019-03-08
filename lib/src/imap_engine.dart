@@ -92,13 +92,14 @@ class ImapEngine {
       throw new MissingCommandException(
           "Trying to execute, but command queue is empty.");
 
+    _queue.first._before?.call();
     ImapTaggedResponse response;
     do {
-      if (_queue.first.folder != _currentFolder) {
-        response = await _selectFolder(_queue.first.folder);
+      _currentInstruction = _queue.removeFirst();
+      if (_currentInstruction.folder != _currentFolder) {
+        response = await _selectFolder(_currentInstruction.folder);
         if (response != ImapTaggedResponse.ok) return response;
       }
-      _currentInstruction = _queue.removeFirst();
       await _currentInstruction._before?.call();
       response = await _currentInstruction.run(_buffer);
       if (_currentInstruction == command) {

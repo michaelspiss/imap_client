@@ -48,13 +48,14 @@ class ImapClient extends _ImapCommandable {
   ///
   /// Automatically sets the authenticated state.
   Future<ImapTaggedResponse> login(String username, String password) async {
-    _requiresNotAuthenticated("LOGIN");
-    if (await _engine.hasCapability("LOGINDISABLED")) {
-      _debugLog("Using LOGIN is forbidden by server");
-      return ImapTaggedResponse.bad;
-    }
-    ImapTaggedResponse response =
-        await sendCommand("LOGIN \"$username\" \"$password\"");
+    ImapTaggedResponse response = await sendCommand(
+        "LOGIN \"$username\" \"$password\"", before: () async {
+      _requiresNotAuthenticated("LOGIN");
+      if (await _engine.hasCapability("LOGINDISABLED")) {
+        _debugLog("Using LOGIN is forbidden by server");
+        return ImapTaggedResponse.bad;
+      }
+    });
     if (response == ImapTaggedResponse.ok) {
       _engine._isAuthenticated = true;
       _engine._capabilities.clear();
@@ -66,17 +67,18 @@ class ImapClient extends _ImapCommandable {
   ///
   /// Sends "AUTHENTICATE" command, defined in rfc 3501
   Future<ImapTaggedResponse> authenticate(ImapSaslMechanism mechanism) async {
-    _requiresNotAuthenticated("AUTHENTICATE");
-    await _engine.hasCapability(""); // update capabilities
     String mechanismName = mechanism.name.toUpperCase();
-    if (!_engine._serverAuthCapabilities.contains(mechanismName)) {
-      _debugLog("AUTHENTICATE called with unsupported \"" +
-          mechanism.name +
-          "\" sasl mechanism");
-      return ImapTaggedResponse.bad;
-    }
-    ImapTaggedResponse response = await sendCommand(
-        "AUTHENTICATE " + mechanismName, onContinue: (String response) {
+    ImapTaggedResponse response =
+        await sendCommand("AUTHENTICATE " + mechanismName, before: () async {
+      _requiresNotAuthenticated("AUTHENTICATE");
+      await _engine.hasCapability(""); // update capabilities
+      if (!_engine._serverAuthCapabilities.contains(mechanismName)) {
+        _debugLog("AUTHENTICATE called with unsupported sasl mechanism \"" +
+            mechanism.name +
+            "\"");
+        return ImapTaggedResponse.bad;
+      }
+    }, onContinue: (String response) {
       if (mechanism.isAuthenticated) {
         // something went wrong
         return ""; // escape from continue
@@ -95,17 +97,20 @@ class ImapClient extends _ImapCommandable {
   ///
   /// Elevates unencrypted connection to be TLS encrypted.
   Future<ImapTaggedResponse> starttls() async {
-    _requiresNotAuthenticated("STARTTLS");
-    if (_secure) {
-      _debugLog("starttls command used, but connection is already secure.");
-      return ImapTaggedResponse.bad;
-    }
-    if (!(await _engine.hasCapability("STARTTLS"))) {
-      _debugLog("STARTTLS is not enabled. Maybe you have to do a capability " +
-          "request first.");
-      return ImapTaggedResponse.bad;
-    }
-    ImapTaggedResponse response = await sendCommand("STARTTLS");
+    ImapTaggedResponse response =
+        await sendCommand("STARTTLS", before: () async {
+      _requiresNotAuthenticated("STARTTLS");
+      if (_secure) {
+        _debugLog("starttls command used, but connection is already secure.");
+        return ImapTaggedResponse.bad;
+      }
+      if (!(await _engine.hasCapability("STARTTLS"))) {
+        _debugLog(
+            "STARTTLS is not enabled. Maybe you have to do a capability " +
+                "request first.");
+        return ImapTaggedResponse.bad;
+      }
+    });
     // Negotiate tls
     _engine._setSocket(await SecureSocket.secure(_engine._socket));
     return response;
