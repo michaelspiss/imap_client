@@ -10,6 +10,7 @@ abstract class _ImapCommandable {
   Future<ImapTaggedResponse> sendCommand(String command,
       {String Function(String) onContinue,
       Map<String, UntaggedHandler> untaggedHandlers,
+      void Function() before,
       bool priority = false}) {
     if (_engine == null)
       throw new StateException(
@@ -19,6 +20,7 @@ abstract class _ImapCommandable {
     if (onContinue != null) imapCommand.setOnContinueHandler(onContinue);
     if (untaggedHandlers != null)
       imapCommand._untaggedHandlers = untaggedHandlers;
+    imapCommand._before = before;
     _engine.enqueueCommand(imapCommand, priority: priority);
     return _engine.executeCommand(imapCommand);
   }

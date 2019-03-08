@@ -34,7 +34,12 @@ class ImapCommand {
   ///
   /// Only available after command completion, might hold values like PARSE,
   /// BADCHARSET or TRYCREATE
-  String responseCode;
+  String _responseCode;
+
+  String get responseCode => _responseCode;
+
+  /// Executed before run(), awaited if async
+  void Function() _before;
 
   /// Constructor for an ImapCommand.
   ///

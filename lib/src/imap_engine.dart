@@ -99,6 +99,7 @@ class ImapEngine {
         if (response != ImapTaggedResponse.ok) return response;
       }
       _currentInstruction = _queue.removeFirst();
+      await _currentInstruction._before?.call();
       response = await _currentInstruction.run(_buffer);
       if (_currentInstruction == command) {
         _currentInstruction = null;
@@ -248,7 +249,7 @@ class ImapEngine {
         _currentFolder._uidvalidity = number;
         break;
       default:
-        _currentInstruction.responseCode = wordValue;
+        _currentInstruction._responseCode = wordValue;
     }
   }
 

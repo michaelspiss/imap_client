@@ -151,7 +151,7 @@ class ImapFolder extends _ImapCommandable {
 
   /// Sets flags for messages
   ///
-  /// Either [messageUIds] or [messageUIdRanges] must be given, else an
+  /// Either [messageIds] or [messageIdRanges] must be given, else an
   /// [ArgumentError] will be thrown. If [silent] is true, the client will not
   /// automatically update affected mails. This must be done by the developer
   /// after this method returned [ImapTaggedResponse.ok]. It is always faster
@@ -159,12 +159,12 @@ class ImapFolder extends _ImapCommandable {
   /// Sends "STORE" or "UID STORE" command as defined in rfc 3501
   Future<ImapTaggedResponse> store(
       ImapFlagsOption flagOption, Iterable<String> flags,
-      {Iterable<int> messageUIds,
-      Iterable<String> messageUIdRanges,
+      {Iterable<int> messageIds,
+      Iterable<String> messageIdRanges,
       bool silent = false,
       bool uid = false}) async {
     String silent_suffix = silent ? ".SILENT" : "";
-    String sequenceSet = _getSequenceSet(messageUIds, messageUIdRanges);
+    String sequenceSet = _getSequenceSet(messageIds, messageIdRanges);
     String option = _flagOptionToString(flagOption);
     String uidString = uid ? "UID " : "";
     return sendCommand(uidString +
