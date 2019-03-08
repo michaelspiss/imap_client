@@ -122,11 +122,9 @@ class ImapBuffer {
       charCodes.add(await _getCharCode(proceed: true));
     _bufferPosition++; // move behind closing curly bracket
     int length = int.parse(String.fromCharCodes(charCodes));
-    ImapWord word = await readWord(autoReleaseBuffer: false);
-    if (word.type != ImapWordType.eol)
-      throw new InvalidFormatException("Expected newline before literal text");
+    await readWord(autoReleaseBuffer: false, expected: ImapWordType.eol);
     charCodes.clear();
-    await _getCharCode(position: _bufferPosition + length);
+    await _getCharCode(position: _bufferPosition + length - 1);
     charCodes
         .addAll(_buffer.getRange(_bufferPosition, _bufferPosition + length));
     _bufferPosition = _bufferPosition + length;
@@ -142,7 +140,7 @@ class ImapBuffer {
     if (await _getCharCode() != 92) // "\\"
       throw new InvalidFormatException("Expected \\ before flag name");
     _bufferPosition++;
-    List<int> charCodes = <int>[];
+    List<int> charCodes = <int>[92];
     while (!await _isWhitespace() && await _isValidAtomCharCode())
       charCodes.add(await _getCharCode(proceed: true));
     if (autoReleaseBuffer) _releaseUsedBuffer();
@@ -235,13 +233,13 @@ class ImapBuffer {
     return true;
   }
 
-  /// Gets the char code - set by [_bufferPosition] or a custom position
+  /// Gets the char code - set by [_bufferPosition] or a custom [position]
   ///
   /// [proceed] increases the [_bufferPosition] by one.
   Future<int> _getCharCode({bool proceed = false, int position = -1}) async {
     if (position == -1) position = _bufferPosition;
     if (position >= _buffer.length) {
-      _bufferAwaiter = new _BufferAwaiter(new Completer(), position);
+      _bufferAwaiter = new _BufferAwaiter(position);
       await _bufferAwaiter.completer.future;
     }
     if (proceed) _bufferPosition++;

@@ -124,7 +124,7 @@ void main() {
     test('Can read single flag', () async {
       var list = "\\Flag ".codeUnits;
       _controller.add(list);
-      expect((await _buffer.readFlag()).value, "Flag");
+      expect((await _buffer.readFlag()).value, "\\Flag");
     });
     test('Has correct type', () async {
       var list = "\\Flag ".codeUnits;
@@ -134,14 +134,14 @@ void main() {
     test('Does not include non atom chars', () async {
       var list = "\\Flag] ".codeUnits;
       _controller.add(list);
-      expect((await _buffer.readFlag()).value, "Flag");
+      expect((await _buffer.readFlag()).value, "\\Flag");
     });
     test('Can read multiple flags', () async {
       var list = "\\FlagOne \\FlagTwo ".codeUnits;
       _controller.add(list);
-      expect((await _buffer.readFlag()).value, "FlagOne");
+      expect((await _buffer.readFlag()).value, "\\FlagOne");
       await _buffer.skipWhitespaces();
-      expect((await _buffer.readFlag()).value, "FlagTwo");
+      expect((await _buffer.readFlag()).value, "\\FlagTwo");
     });
     test('Throws InvalidFormatException if it does not start with backslash',
         () async {

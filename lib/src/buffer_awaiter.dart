@@ -4,8 +4,8 @@ part of imap_client;
 ///
 /// See implementation in [ImapBuffer] _getCharCode() method
 class _BufferAwaiter {
-  final Completer completer;
+  final Completer completer = new Completer();
   final int awaitedPosition;
 
-  _BufferAwaiter(this.completer, this.awaitedPosition);
+  _BufferAwaiter(this.awaitedPosition);
 }
