@@ -67,6 +67,7 @@ class ImapClient extends _ImapCommandable {
   /// Sends "AUTHENTICATE" command, defined in rfc 3501
   Future<ImapTaggedResponse> authenticate(ImapSaslMechanism mechanism) async {
     _requiresNotAuthenticated("AUTHENTICATE");
+    await _engine.hasCapability(""); // update capabilities
     String mechanismName = mechanism.name.toUpperCase();
     if (!_engine._serverAuthCapabilities.contains(mechanismName)) {
       _debugLog("AUTHENTICATE called with unsupported \"" +
