@@ -28,19 +28,22 @@ class ImapCommand {
   Map<String, UntaggedHandler> _untaggedHandlers = new Map();
 
   /// Handler that is being called when there is a command continue request (+)
-  Function(String) _onContinueHandler;
+  String Function(String) _onContinueHandler;
+
+  /// Response code which might have been sent by the server - else, null
+  ///
+  /// Only available after command completion, might hold values like PARSE,
+  /// BADCHARSET or TRYCREATE
+  String responseCode;
 
   /// Constructor for an ImapCommand.
   ///
-  /// The [command] will be executed by the [engine], in the given [folder]. If
+  /// The [command] will be executed by the [_engine], in the given [folder]. If
   /// the [command] is to be executed without a mailbox/folder selected, pass
   /// null. [command] cannot be changed later and must be given without trailing
   /// \r\n (newline).
   ImapCommand(this._engine, this.folder, this.command) {
-    // default handler just aborts
-    _onContinueHandler = (String response) {
-      _engine.writeln("");
-    };
+    _tag = _engine.generateTag();
   }
 
   /// Sets a [handler] for all untagged responses of the specified [type]
@@ -52,8 +55,48 @@ class ImapCommand {
   }
 
   /// Sets handler that is being called when there is a command continue request
-  void setOnContinueHandler(Function(String) handler) {
+  void setOnContinueHandler(String Function(String) handler) {
     _onContinueHandler = handler;
+  }
+
+  /// Runs the command. Expects have exclusive access to the buffer.
+  ///
+  /// Server [responses] are being passed to this function wrapped in an
+  /// [ImapBuffer] that already handles waiting for yet unsent responses.
+  Future<ImapTaggedResponse> run(ImapBuffer responses) async {
+    if (command.isEmpty) return ImapTaggedResponse.bad;
+    _engine.writeln(tag + " " + command);
+
+    ImapWord word;
+    while(true) {
+      word = await responses.readWord();
+      // untagged response
+      if (word.type == ImapWordType.tokenAsterisk) {
+        await _engine.handleUntaggedResponse();
+      }
+      // command continue request
+      else if (word.type == ImapWordType.tokenPlus) {
+        String line = await responses.readLine();
+        _engine.writeln(_onContinueHandler?.call(line) ?? "");
+      }
+      // tagged response
+      else if (word.type == ImapWordType.atom && word.value[0] == 'A') {
+        ImapWord status = await responses.readWord(expected: ImapWordType.atom);
+        word = await responses.readWord();
+        if (word.type == ImapWordType.bracketOpen)
+          await _engine.handleResponseCode();
+        await responses.skipLine();
+        String statusValue = status.value.toUpperCase();
+        if (statusValue == 'OK') return ImapTaggedResponse.ok;
+        if (statusValue == 'NO') return ImapTaggedResponse.no;
+        if (statusValue == 'BAD') return ImapTaggedResponse.bad;
+        throw new SyntaxErrorException(
+            "Expected command status after tag, but got " + status.value);
+      } else {
+        throw new SyntaxErrorException(
+            "Expected */+/TAG, but got " + word.toString());
+      }
+    }
   }
 
   @override

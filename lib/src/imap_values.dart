@@ -10,10 +10,22 @@ enum ImapWordType {
   tokenPlus, // "+"
   string, // single word, quoted string, literal
   nil, // NIL
-  flag, // Any flags sent by the server
+  flag, // Any standard flags sent by the server (starting with "\")
   eol, // "\n" ("\r" are ignored and treated as whitespace characters)
   parenOpen, // "("
   parenClose, // ")"
   bracketOpen, // "["
   bracketClose, // "]"
+}
+
+/// Options for flags methods - see [ImapFolder.store]
+enum ImapFlagsOption { add, remove, replace }
+
+/// Items that can be requested by [_ImapCommandable.status]
+enum ImapStatusDataItem {
+  messages, // number of messages
+  recent, // number of messages with \Recent flag
+  uidnext, // uid for next incoming message
+  uidvalidity, // uid for folder
+  unseen // number of messages without \Seen flag
 }

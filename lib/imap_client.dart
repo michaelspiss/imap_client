@@ -24,9 +24,15 @@ part "src/imap_folder.dart";
 
 part "src/imap_client.dart";
 
+part "src/imap_greeting.dart";
+
 part "src/imap_sasl_mechanism.dart";
 
 part "src/imap_auth_methods.dart";
+
+part "src/imap_commandable.dart";
+
+part "src/imap_list_response.dart";
 
 part "src/exceptions/invalid_format.dart";
 
@@ -37,10 +43,15 @@ part "src/exceptions/syntax_error.dart";
 part "src/exceptions/state.dart";
 
 Logger _logger = new Logger('imap_client');
-bool _isLoggerActive = false;
+bool _debugging = false;
 
 /// Prints the imap client's debug log.
 void printImapClientDebugLog() {
-  _isLoggerActive = true;
+  _debugging = true;
   _logger.onRecord.listen(print);
+}
+
+/// Logs [message] if debugging
+void _debugLog(String message) {
+  if(_debugging) _logger.info(message);
 }
