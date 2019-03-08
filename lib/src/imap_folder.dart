@@ -53,14 +53,6 @@ class ImapFolder extends _ImapCommandable {
     _name = name;
   }
 
-  /// Sends custom command. Command will be executed in this folder.
-  Future<ImapTaggedResponse> sendCommand(String command,
-      {Function(String) onContinue,
-      Map<String, UntaggedHandler> untaggedHandlers}) {
-    return _sendCommand(command,
-        onContinue: onContinue, untaggedHandlers: untaggedHandlers);
-  }
-
   /// May trigger housekeeping operations on selected folder. Else, like noop.
   ///
   /// Sends "CHECK" command as defined in rfc 3501

@@ -7,7 +7,7 @@ abstract class _ImapCommandable {
   /// Sends custom command. Command must not include CRLF (\r\n)!
   ///
   /// Untagged handler maps must have keys in UPPERCASE!
-  Future<ImapTaggedResponse> _sendCommand(String command,
+  Future<ImapTaggedResponse> sendCommand(String command,
       {String Function(String) onContinue,
       Map<String, UntaggedHandler> untaggedHandlers,
       bool priority = false}) {
@@ -32,7 +32,7 @@ abstract class _ImapCommandable {
   /// Updates the server's capability list, which lists extensions and auth
   /// methods supported by the server.
   Future<ImapTaggedResponse> capability({bool priority = false}) async {
-    return _sendCommand("CAPABILITY", priority: priority);
+    return sendCommand("CAPABILITY", priority: priority);
   }
 
   /// Sends "LOGOUT" command defined in rfc 3501
@@ -40,7 +40,7 @@ abstract class _ImapCommandable {
   /// This tells the server that this client would like to close the connection.
   /// The connection is then closed by the server.
   Future<ImapTaggedResponse> logout() async {
-    return _sendCommand("LOGOUT");
+    return sendCommand("LOGOUT");
   }
 
   /// Sends "NOOP" command defined in rfc 3501
@@ -48,7 +48,7 @@ abstract class _ImapCommandable {
   /// Does not do anything, but allows the server to response with untagged
   /// responses (mailbox changes for example) and also resets the timeout timer.
   Future<ImapTaggedResponse> noop() async {
-    return _sendCommand("NOOP");
+    return sendCommand("NOOP");
   }
 
   /*
@@ -59,7 +59,7 @@ abstract class _ImapCommandable {
       {Function(String) onContinue,
       Map<String, UntaggedHandler> untaggedHandlers}) {
     _requiresAuthenticated(command);
-    return _sendCommand(command,
+    return sendCommand(command,
         onContinue: onContinue, untaggedHandlers: untaggedHandlers);
   }
 

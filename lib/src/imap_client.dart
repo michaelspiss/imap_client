@@ -54,7 +54,7 @@ class ImapClient extends _ImapCommandable {
       return ImapTaggedResponse.bad;
     }
     ImapTaggedResponse response =
-        await _sendCommand("LOGIN \"$username\" \"$password\"");
+        await sendCommand("LOGIN \"$username\" \"$password\"");
     if (response == ImapTaggedResponse.ok) {
       _engine._isAuthenticated = true;
       _engine._capabilities.clear();
@@ -74,7 +74,7 @@ class ImapClient extends _ImapCommandable {
           "\" sasl mechanism");
       return ImapTaggedResponse.bad;
     }
-    ImapTaggedResponse response = await _sendCommand(
+    ImapTaggedResponse response = await sendCommand(
         "AUTHENTICATE " + mechanismName, onContinue: (String response) {
       if (mechanism.isAuthenticated) {
         // something went wrong
@@ -104,7 +104,7 @@ class ImapClient extends _ImapCommandable {
           "request first.");
       return ImapTaggedResponse.bad;
     }
-    ImapTaggedResponse response = await _sendCommand("STARTTLS");
+    ImapTaggedResponse response = await sendCommand("STARTTLS");
     // Negotiate tls
     _engine._setSocket(await SecureSocket.secure(_engine._socket));
     return response;
