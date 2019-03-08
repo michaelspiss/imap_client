@@ -2,7 +2,6 @@ part of imap_client;
 
 /// Special instruction, because it has no tag. Handles the server greeting.
 class ImapGreeting extends ImapCommand {
-
   ImapGreeting(ImapEngine engine) : super(engine, null, null);
 
   @override

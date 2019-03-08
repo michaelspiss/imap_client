@@ -68,7 +68,7 @@ class ImapCommand {
     _engine.writeln(tag + " " + command);
 
     ImapWord word;
-    while(true) {
+    while (true) {
       word = await responses.readWord();
       // untagged response
       if (word.type == ImapWordType.tokenAsterisk) {
