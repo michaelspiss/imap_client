@@ -42,6 +42,8 @@ part "src/exceptions/syntax_error.dart";
 
 part "src/exceptions/state.dart";
 
+part "src/exceptions/unsupported.dart";
+
 Logger _logger = new Logger('imap_client');
 bool _debugging = false;
 

@@ -195,6 +195,33 @@ class ImapFolder extends _ImapCommandable {
         destination.name);
   }
 
+  /// Listens for changes to the currently selected mailbox
+  ///
+  /// To make the server aware that this client is still active and prevent a
+  /// timeout, idle should be re-issued at least every 29 minutes.
+  /// Throws an [UnsupportedException] if the server does not support the idle.
+  /// The [duration] of this listening should not be less than one minute, in
+  /// that case other commands might be more efficient.
+  /// Sends "IDLE" command, defined in rfc 2177
+  Future<ImapTaggedResponse> idle(
+      [Duration duration = const Duration(minutes: 29)]) async {
+    if (!_engine.hasCapability("IDLE")) {
+      throw new UnsupportedException(
+          "Server does not support the idle command");
+    }
+    _debugLog("IDLEing for " + duration.toString());
+    new Timer(duration, endIdle);
+    return sendCommand("IDLE");
+  }
+
+  /// Ends the currently running [idle] command
+  void endIdle() {
+    if (_engine._currentInstruction.command != "IDLE") {
+      throw new StateException("Trying to end IDLE, but command is not active");
+    }
+    _engine.writeln("DONE");
+  }
+
   /*
   Helper methods
    */

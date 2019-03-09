@@ -82,7 +82,8 @@ class ImapCommand {
       // command continue request
       else if (word.type == ImapWordType.tokenPlus) {
         String line = await responses.readLine();
-        _engine.writeln(_onContinueHandler?.call(line) ?? "");
+        String response = _onContinueHandler?.call(line);
+        if (response != null) _engine.writeln(response);
       }
       // tagged response
       else if (word.type == ImapWordType.atom && word.value[0] == 'A') {
