@@ -41,7 +41,9 @@ abstract class _ImapCommandable {
   /// This tells the server that this client would like to close the connection.
   /// The connection is then closed by the server.
   Future<ImapTaggedResponse> logout() async {
-    return sendCommand("LOGOUT");
+    return sendCommand("LOGOUT").then((ImapTaggedResponse response) {
+      if(response == ImapTaggedResponse.ok) _engine._socket.close();
+    });
   }
 
   /// Sends "NOOP" command defined in rfc 3501
