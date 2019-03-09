@@ -432,7 +432,7 @@ class ImapFolder extends _ImapCommandable {
           if (value.length % 2 != 0)
             throw new SyntaxErrorException(
                 "Expected key/value pairs, but got odd number of items.");
-          for(int i = 0; i < value.length; i = i+2) {
+          for (int i = 0; i < value.length; i = i + 2) {
             map[value[i]] = value[i + 1];
           }
           extensions["PARAMETER"] = map;

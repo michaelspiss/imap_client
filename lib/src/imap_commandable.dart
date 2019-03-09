@@ -42,7 +42,7 @@ abstract class _ImapCommandable {
   /// The connection is then closed by the server.
   Future<ImapTaggedResponse> logout() async {
     return sendCommand("LOGOUT").then((ImapTaggedResponse response) {
-      if(response == ImapTaggedResponse.ok) _engine._socket.close();
+      if (response == ImapTaggedResponse.ok) _engine._socket.close();
     });
   }
 

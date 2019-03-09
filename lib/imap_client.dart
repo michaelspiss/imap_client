@@ -55,5 +55,5 @@ void printImapClientDebugLog() {
 
 /// Logs [message] if debugging
 void _debugLog(String message) {
-  if(_debugging) _logger.info(message);
+  if (_debugging) _logger.info(message);
 }
