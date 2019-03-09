@@ -79,10 +79,7 @@ class ImapEngine {
   }
 
   /// Enqueues an [ImapCommand] for execution.
-  void enqueueCommand(ImapCommand command, {bool priority = false}) {
-    if (priority)
-      _queue.addFirst(command);
-    else
+  void enqueueCommand(ImapCommand command) {
       _queue.add(command);
   }
 
@@ -135,9 +132,6 @@ class ImapEngine {
 
   /// Checks if server has capability, also returns false if no data is present!
   Future<bool> hasCapability(String capability) async {
-    if (_capabilities.isEmpty) {
-      await _currentFolder.capability(priority: true);
-    }
     return _capabilities.contains(capability);
   }
 

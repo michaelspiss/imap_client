@@ -10,8 +10,7 @@ abstract class _ImapCommandable {
   Future<ImapTaggedResponse> sendCommand(String command,
       {String Function(String) onContinue,
       Map<String, UntaggedHandler> untaggedHandlers,
-      void Function() before,
-      bool priority = false}) {
+      void Function() before}) {
     if (_engine == null)
       throw new StateException(
           "Trying to execute command, but engine is not connected or not set.");
@@ -21,7 +20,7 @@ abstract class _ImapCommandable {
     if (untaggedHandlers != null)
       imapCommand._untaggedHandlers = untaggedHandlers;
     imapCommand._before = before;
-    _engine.enqueueCommand(imapCommand, priority: priority);
+    _engine.enqueueCommand(imapCommand);
     return _engine.executeCommand(imapCommand);
   }
 
@@ -33,8 +32,8 @@ abstract class _ImapCommandable {
   ///
   /// Updates the server's capability list, which lists extensions and auth
   /// methods supported by the server.
-  Future<ImapTaggedResponse> capability({bool priority = false}) async {
-    return sendCommand("CAPABILITY", priority: priority);
+  Future<ImapTaggedResponse> capability() async {
+    return sendCommand("CAPABILITY");
   }
 
   /// Sends "LOGOUT" command defined in rfc 3501
