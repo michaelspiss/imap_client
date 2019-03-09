@@ -80,7 +80,7 @@ class ImapEngine {
 
   /// Enqueues an [ImapCommand] for execution.
   void enqueueCommand(ImapCommand command) {
-      _queue.add(command);
+    _queue.add(command);
   }
 
   /// Executes commands in the queue until it reaches [command].

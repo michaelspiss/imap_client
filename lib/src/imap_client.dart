@@ -59,7 +59,7 @@ class ImapClient extends _ImapCommandable {
     if (response == ImapTaggedResponse.ok) {
       _engine._isAuthenticated = true;
       // auth capabilities are still available if capabilities were not updated
-      if(_engine._serverAuthCapabilities.isNotEmpty) {
+      if (_engine._serverAuthCapabilities.isNotEmpty) {
         ImapCommand command = new ImapCommand(_engine, null, "CAPABILITY");
         _engine.enqueueCommand(command);
         await _engine.executeCommand(command);
@@ -94,7 +94,7 @@ class ImapClient extends _ImapCommandable {
     if (mechanism.isAuthenticated && response == ImapTaggedResponse.ok) {
       _engine._isAuthenticated = true;
       // auth capabilities are still available if capabilities were not updated
-      if(_engine._serverAuthCapabilities.isNotEmpty) {
+      if (_engine._serverAuthCapabilities.isNotEmpty) {
         ImapCommand command = new ImapCommand(_engine, null, "CAPABILITY");
         _engine.enqueueCommand(command);
         await _engine.executeCommand(command);
