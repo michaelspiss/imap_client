@@ -76,7 +76,6 @@ class ImapClient extends _ImapCommandable {
     ImapTaggedResponse response =
         await sendCommand("AUTHENTICATE " + mechanismName, before: () async {
       _requiresNotAuthenticated("AUTHENTICATE");
-      // TODO: update capabilities
       if (!_engine._serverAuthCapabilities.contains(mechanismName)) {
         _debugLog("AUTHENTICATE called with unsupported sasl mechanism \"" +
             mechanism.name +
