@@ -184,13 +184,13 @@ class ImapFolder extends _ImapCommandable {
   /// be used.
   /// Sends "COPY" or "UID COPY" command as defined in rfc 3501
   Future<ImapTaggedResponse> copy(ImapFolder destination,
-      {Iterable<int> messageUIds,
-      Iterable<String> messageUIdRanges,
+      {Iterable<int> messageIds,
+      Iterable<String> messageIdRanges,
       bool uid = false}) async {
     String uidString = uid ? "UID " : "";
     return sendCommand(uidString +
         "COPY " +
-        _getSequenceSet(messageUIds, messageUIdRanges) +
+        _getSequenceSet(messageIds, messageIdRanges) +
         " " +
         destination.name);
   }
