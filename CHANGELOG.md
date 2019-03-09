@@ -1,3 +1,10 @@
+## 1.0.0-alpha
+
+- Complete rewrite
+- Now easier to use and extend
+- Fix #2, a bug that prevents fetches
+- Change concept of folders to representation based instead of internal handling
+
 ## 0.1.3
 
 - Update test package to latest version
