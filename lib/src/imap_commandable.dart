@@ -32,6 +32,8 @@ abstract class _ImapCommandable {
   ///
   /// Updates the server's capability list, which lists extensions and auth
   /// methods supported by the server.
+  /// This is normally done automatically and does not have to be triggered
+  /// explicitly.
   Future<ImapTaggedResponse> capability() async {
     return sendCommand("CAPABILITY");
   }
