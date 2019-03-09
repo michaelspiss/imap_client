@@ -29,7 +29,8 @@ most return an enum `ImapTaggedResponse`, which can be either:
 * OK: success
 * NO: command was unsuccessful
 * BAD: command not accepted by the server
-Some other return data that has been requested, like `fetch` or `list`.
+
+Sometimes, there are commands which have  other return data, like `fetch` or `list`.
 
 To select a folder, a simple call to `getFolder()` is sufficient:
 ```dart
