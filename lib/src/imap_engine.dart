@@ -39,6 +39,9 @@ class ImapEngine {
   /// Handles expunge (message deletion) responses
   void Function(int message) expungeHandler;
 
+  /// Holds requested folders for later use
+  Map<String, ImapFolder> _folderCache = {};
+
   ImapEngine(Socket _connection) {
     _buffer = new ImapBuffer();
     _greeting = new ImapGreeting(this);

@@ -79,12 +79,19 @@ abstract class _ImapCommandable {
   /// Renames the given [folder] to [newName]
   ///
   /// Sends "RENAME" command, defined in rfc 3501
-  Future<ImapTaggedResponse> rename(ImapFolder folder, String newName) {
-    return sendCommand("RENAME \"" + folder.name + "\" \"" + newName + "\"",
+  Future<ImapTaggedResponse> rename(ImapFolder folder, String newName) async {
+    ImapTaggedResponse response = await sendCommand(
+        "RENAME \"" + folder.name + "\" \"" + newName + "\"",
         before: () => _requiresAuthenticated("CREATE"));
+    if (response == ImapTaggedResponse.ok) {
+      _engine._folderCache.remove(folder.name);
+      folder._name = newName;
+      _engine._folderCache[newName] = folder;
+    }
+    return response;
   }
 
-  /// Selects folder [folderName] and returns its [ImapFolder] representation instance
+  /// Selects [folderName] and returns its [ImapFolder] representation instance
   ///
   /// Commands to be executed in a folder can be called from the returned
   /// [ImapFolder] instance. If [readOnly] is set, the folder will be read-only,
@@ -94,18 +101,22 @@ abstract class _ImapCommandable {
   /// without opening them first. USE AT YOUR OWN RISK.
   /// Throws [StateException] if user is not authenticated.
   /// Sends "SELECT" or "EXAMINE" commands, defined in rfc 3501
-  Future<ImapFolder> select(String folderName,
+  Future<ImapFolder> getFolder(String folderName,
       {bool readOnly = false, bool dontOpen = false}) async {
-    ImapFolder folder = new ImapFolder(_engine, folderName);
+    if (!_engine._folderCache.containsKey(folderName))
+      _engine._folderCache[folderName] = new ImapFolder(_engine, folderName);
+    ImapFolder folder = _engine._folderCache[folderName];
     if (dontOpen) return folder;
     if (readOnly) folder._isReadWrite = false;
     ImapCommand command = new ImapCommand(_engine, folder, "");
     command._before = () => _requiresAuthenticated("SELECT/EXAMINE");
     _engine.enqueueCommand(command);
     await _engine.executeCommand(command);
-    if (_engine._currentFolder != folder)
+    if (_engine._currentFolder != folder) {
+      _engine._folderCache.remove(folderName);
       throw new StateException(
           "Folder \"" + folderName + "\" could not be selected.");
+    }
     return folder;
   }
 

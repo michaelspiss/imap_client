@@ -195,6 +195,15 @@ class ImapFolder extends _ImapCommandable {
         destination.name);
   }
 
+  /// If this folder is no longer needed, mark it for garbage collection.
+  ///
+  /// Commands will no longer work, if this folder is needed later, you need to
+  /// get it via [_ImapCommandable.getFolder] again.
+  void destroy() {
+    _engine._folderCache.remove(this.name);
+    _engine = null;
+  }
+
   /// Listens for changes to the currently selected mailbox
   ///
   /// To make the server aware that this client is still active and prevent a
