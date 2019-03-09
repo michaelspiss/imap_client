@@ -89,7 +89,6 @@ class ImapEngine {
       throw new MissingCommandException(
           "Trying to execute, but command queue is empty.");
 
-    _queue.first._before?.call();
     ImapTaggedResponse response;
     do {
       _currentInstruction = _queue.removeFirst();
