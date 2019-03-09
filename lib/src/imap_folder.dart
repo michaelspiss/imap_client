@@ -264,7 +264,6 @@ class ImapFolder extends _ImapCommandable {
             dataItem +=
                 String.fromCharCodes(buffer._buffer.getRange(startAdr, endAdr))
                     .toUpperCase();
-            print("name: " + dataItem);
             result[number][dataItem] = await _readNString(buffer);
           } else
             _debugLog("No handler found for fetch data item " + dataItem);
