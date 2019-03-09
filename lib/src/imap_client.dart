@@ -51,14 +51,19 @@ class ImapClient extends _ImapCommandable {
     ImapTaggedResponse response = await sendCommand(
         "LOGIN \"$username\" \"$password\"", before: () async {
       _requiresNotAuthenticated("LOGIN");
-      if (await _engine.hasCapability("LOGINDISABLED")) {
+      if (_engine.hasCapability("LOGINDISABLED")) {
         _debugLog("Using LOGIN is forbidden by server");
         return ImapTaggedResponse.bad;
       }
     });
     if (response == ImapTaggedResponse.ok) {
       _engine._isAuthenticated = true;
-      _engine._capabilities.clear();
+      // auth capabilities are still available if capabilities were not updated
+      if(_engine._serverAuthCapabilities.isNotEmpty) {
+        ImapCommand command = new ImapCommand(_engine, null, "CAPABILITY");
+        _engine.enqueueCommand(command);
+        await _engine.executeCommand(command);
+      }
     }
     return response;
   }
@@ -71,7 +76,7 @@ class ImapClient extends _ImapCommandable {
     ImapTaggedResponse response =
         await sendCommand("AUTHENTICATE " + mechanismName, before: () async {
       _requiresNotAuthenticated("AUTHENTICATE");
-      await _engine.hasCapability(""); // update capabilities
+      // TODO: update capabilities
       if (!_engine._serverAuthCapabilities.contains(mechanismName)) {
         _debugLog("AUTHENTICATE called with unsupported sasl mechanism \"" +
             mechanism.name +
@@ -88,7 +93,12 @@ class ImapClient extends _ImapCommandable {
     });
     if (mechanism.isAuthenticated && response == ImapTaggedResponse.ok) {
       _engine._isAuthenticated = true;
-      _engine._capabilities.clear();
+      // auth capabilities are still available if capabilities were not updated
+      if(_engine._serverAuthCapabilities.isNotEmpty) {
+        ImapCommand command = new ImapCommand(_engine, null, "CAPABILITY");
+        _engine.enqueueCommand(command);
+        await _engine.executeCommand(command);
+      }
     }
     return response;
   }
@@ -104,7 +114,7 @@ class ImapClient extends _ImapCommandable {
         _debugLog("starttls command used, but connection is already secure.");
         return ImapTaggedResponse.bad;
       }
-      if (!(await _engine.hasCapability("STARTTLS"))) {
+      if (!_engine.hasCapability("STARTTLS")) {
         _debugLog(
             "STARTTLS is not enabled. Maybe you have to do a capability " +
                 "request first.");

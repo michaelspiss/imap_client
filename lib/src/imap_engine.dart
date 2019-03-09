@@ -98,11 +98,12 @@ class ImapEngine {
         _currentInstruction = _queue.removeFirst();
       }
       await _currentInstruction._before?.call();
-      response = await _currentInstruction.run(_buffer);
       if (_currentInstruction == command) {
+        response = await _currentInstruction.run(_buffer);
         _currentInstruction = null;
         return response;
       }
+      await _currentInstruction.run(_buffer);
     } while (_queue.isNotEmpty);
     _currentInstruction = null;
 
@@ -132,7 +133,7 @@ class ImapEngine {
   }
 
   /// Checks if server has capability, also returns false if no data is present!
-  Future<bool> hasCapability(String capability) async {
+  bool hasCapability(String capability) {
     return _capabilities.contains(capability);
   }
 

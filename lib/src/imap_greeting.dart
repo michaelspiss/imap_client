@@ -14,6 +14,12 @@ class ImapGreeting extends ImapCommand {
       throw new SyntaxErrorException(
           "Expected untagged greeting, but got " + word.value);
     }
+    // if capabilities were not sent with the greeting, request them
+    if (_engine._capabilities.isEmpty) {
+      ImapCommand command = new ImapCommand(_engine, null, "CAPABILITY");
+      _engine.enqueueCommand(command);
+      await _engine.executeCommand(command);
+    }
     return ImapTaggedResponse.ok;
   }
 
