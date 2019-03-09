@@ -7,4 +7,14 @@ class ImapListResponse {
   final String hierarchyDelimiter;
 
   ImapListResponse(this.attributes, this.name, this.hierarchyDelimiter);
+
+  @override
+  String toString() {
+    return "(" +
+        attributes.join(" ") +
+        ") \"" +
+        hierarchyDelimiter +
+        "\" " +
+        name;
+  }
 }
