@@ -290,6 +290,10 @@ class ImapFolder extends _ImapCommandable {
         case "FLAGS":
           result[number]["FLAGS"] = await _readStringList(buffer);
           break;
+        case "BODY":
+        case "BODYSTRUCTURE":
+          result[number][dataItem] = await _processBody(buffer);
+          break;
         default:
           if (dataItem.startsWith("BODY[")) {
             int startAdr = buffer._bufferPosition;
@@ -327,6 +331,178 @@ class ImapFolder extends _ImapCommandable {
     await buffer.readWord(expected: ImapWordType.parenClose);
     return envelope;
   }
+
+  /*
+  BODY, BODYSTRUCTURE helpers
+   */
+
+  /// Returns data from BODY or BODYSTRUCTURE as key-value Map
+  ///
+  /// If multiple bodies are sent, the bodies are in a list "BODIES", else only
+  /// the body itself is returned.
+  /// BODY example:
+  /// ```
+  /// {
+  ///   "TYPE": "TEXT",
+  ///   "SUBTYPE": "PLAIN",
+  ///   "FIELDS": {
+  ///     PARAMETER: {
+  ///       "CHARSET": "UTF-8"
+  ///     },
+  ///     "ID": null,
+  ///     "DESCRIPTION": null,
+  ///     "ENCODING": "QUOTED-PRINTABLE",
+  ///     "SIZE": 999 // number of octets
+  ///   },
+  ///   "BODYLINES": 26
+  /// }
+  /// ```
+  static Future<Map<String, dynamic>> _processBody(ImapBuffer buffer) async {
+    await buffer.readWord(expected: ImapWordType.parenOpen);
+    ImapWord word = await buffer.readWord();
+    if (word.type == ImapWordType.string) {
+      buffer.unread("\"" + word.value + "\"");
+      return _processBodyOnePart(buffer);
+    } else if (word.type == ImapWordType.parenOpen) {
+      buffer.unread(word.value);
+      return _processBodyMultiPart(buffer);
+    } else
+      throw new SyntaxErrorException("Could not read BODY(STRUCTURE) response");
+  }
+
+  static Future<Map<String, dynamic>> _processBodyOnePart(
+      ImapBuffer buffer) async {
+    Map<String, dynamic> results = {
+      "TYPE": (await buffer.readWord(expected: ImapWordType.string)).value,
+      "SUBTYPE": (await buffer.readWord(expected: ImapWordType.string)).value
+    };
+    switch (results["TYPE"].toUpperCase()) {
+      case "MESSAGE": // body-type-msg
+        results["FIELDS"] = await _processBodyFields(buffer);
+        results["ENVELOPE"] = await _processEnvelope(buffer);
+        results["BODY"] = _processBody(buffer);
+        results["BODYLINES"] = await buffer.readInteger();
+        break;
+      case "TEXT": // body-type-text
+        results["FIELDS"] = await _processBodyFields(buffer);
+        results["BODYLINES"] = await buffer.readInteger();
+        break;
+      default: // body-type-basic
+        results["FIELDS"] = await _processBodyFields(buffer);
+    }
+    // extensions
+    Map<String, dynamic> extensions = await _processExtensions(buffer, false);
+    results.addAll(extensions);
+    return results;
+  }
+
+  static Future<Map<String, dynamic>> _processExtensions(
+      ImapBuffer buffer, bool multipart) async {
+    Map<String, dynamic> extensions = {};
+    int extCount = 0;
+    ImapWord word = await buffer.readWord();
+    while (word.type != ImapWordType.parenClose) {
+      var value;
+      // get value
+      if (word.type == ImapWordType.nil)
+        value = null;
+      else if (word.type == ImapWordType.string)
+        value = word.value;
+      else if (word.type == ImapWordType.atom) {
+        int number = int.tryParse(word.value);
+        if (number != null)
+          value = number;
+        else
+          throw new SyntaxErrorException(
+              "Expected number, got " + word.toString());
+      } else if (word.type == ImapWordType.parenOpen) {
+        value = new List<String>();
+        word = await buffer.readWord();
+        while (word.type != ImapWordType.parenClose) {
+          value.add(word.value);
+          word = await buffer.readWord();
+        }
+      } else
+        throw new SyntaxErrorException(
+            "Expected nil, string, number or list, but got " + word.toString());
+      // add entry
+      if (extCount == 0) {
+        if (value is List) {
+          Map<String, String> map = {};
+          if (value.length % 2 != 0)
+            throw new SyntaxErrorException(
+                "Expected key/value pairs, but got odd number of items.");
+          for(int i = 0; i < value.length; i = i+2) {
+            map[value[i]] = value[i + 1];
+          }
+          extensions["PARAMETER"] = map;
+        } else
+          extensions["MD5"] = value;
+      } else if (extCount == 1)
+        extensions["DISPOSITION"] = value;
+      else if (extCount == 2)
+        extensions["LANGUAGE"] = value;
+      else if (extCount == 3)
+        extensions["LOCATION"] = value;
+      else
+        extensions["EXT-" + (extCount - 3).toString()] = value;
+      extCount++;
+      word = await buffer.readWord();
+    }
+    return extensions;
+  }
+
+  static Future<Map<String, dynamic>> _processBodyMultiPart(
+      ImapBuffer buffer) async {
+    Map<String, dynamic> results = {"BODIES": <Map<String, dynamic>>[]};
+    ImapWord word = await buffer.readWord();
+    while (word.type == ImapWordType.parenOpen) {
+      buffer.unread(word.value);
+      results["BODIES"].add(await _processBody(buffer));
+      word = await buffer.readWord();
+    }
+    if (word.type != ImapWordType.string)
+      throw new SyntaxErrorException(
+          "Expected string, but got " + word.toString());
+    results["SUBTYPE"] = word.value;
+    // extensions
+    Map<String, dynamic> extensions = await _processExtensions(buffer, false);
+    results.addAll(extensions);
+    return results;
+  }
+
+  static Future<Map<String, dynamic>> _processBodyFields(
+      ImapBuffer buffer) async {
+    // either map or nil
+    Map<String, String> bodyFieldParam = new Map();
+    ImapWord word = await buffer.readWord();
+    if (word.type != ImapWordType.nil) {
+      assert(word.type == ImapWordType.parenOpen);
+      word = await buffer.readWord();
+      while (word.type != ImapWordType.parenClose) {
+        bodyFieldParam[word.value] =
+            (await buffer.readWord(expected: ImapWordType.string)).value;
+        word = await buffer.readWord();
+      }
+    }
+    String bodyFieldId = await _readNString(buffer);
+    String bodyFieldDesc = await _readNString(buffer);
+    String bodyFieldEnc =
+        (await buffer.readWord(expected: ImapWordType.string)).value;
+    int bodyFieldOctets = await buffer.readInteger();
+
+    return <String, dynamic>{
+      "PARAMETER": bodyFieldParam,
+      "ID": bodyFieldId,
+      "DESCRIPTION": bodyFieldDesc,
+      "ENCODING": bodyFieldEnc,
+      "SIZE": bodyFieldOctets
+    };
+  }
+
+  /*
+  Other helpers
+   */
 
   /// Reads words until parenthesized list ends
   static Future<List<String>> _readStringList(ImapBuffer buffer) async {
