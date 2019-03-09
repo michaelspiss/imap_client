@@ -95,6 +95,7 @@ class ImapEngine {
       if (_currentInstruction.folder != _currentFolder) {
         response = await _selectFolder(_currentInstruction.folder);
         if (response != ImapTaggedResponse.ok) return response;
+        _currentInstruction = _queue.removeFirst();
       }
       await _currentInstruction._before?.call();
       response = await _currentInstruction.run(_buffer);
@@ -121,6 +122,7 @@ class ImapEngine {
       select = new ImapCommand(this, folder, "EXAMINE " + folder.name);
     else
       select = new ImapCommand(this, folder, "SELECT " + folder.name);
+    _queue.addFirst(_currentInstruction);
     _queue.addFirst(select);
     ImapTaggedResponse response = await executeCommand(select);
     if (response == ImapTaggedResponse.no)
