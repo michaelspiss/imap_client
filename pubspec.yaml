@@ -10,7 +10,7 @@ environment:
 
 dependencies:
   logging: ^0.11.3
-  pedantic: '1.4.0'
+  pedantic: ^1.4.0
 
 dev_dependencies:
   test: ^1.3.0
