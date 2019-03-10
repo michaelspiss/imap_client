@@ -3,7 +3,7 @@ import 'package:imap_client/imap_client.dart';
 main() async {
   // print log, helpful for debugging
   printImapClientDebugLog();
-  
+
   ImapClient client = new ImapClient();
   // connect
   await client.connect("imap.gmail.com", 993, true);
