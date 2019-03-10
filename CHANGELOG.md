@@ -1,3 +1,7 @@
+## 0.2.0
+
+- Version change, 1.0.0-alpha is lower than 0.1.3, which causes updates to fail
+
 ## 1.0.0-alpha
 
 - Complete rewrite
