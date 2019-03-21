@@ -102,14 +102,17 @@ class ImapBuffer {
     _bufferPosition++;
     List<int> charCodes = <int>[];
     int nextChar = await _getCharCode(proceed: true);
-    while (nextChar != 34) {
+    while (nextChar != 34) { // "\""
       charCodes.add(nextChar);
       nextChar = await _getCharCode(proceed: true);
-      // escaped quotation mark "\\\""
-      if (nextChar == 92 && await _getCharCode() == 34) {}
-        // skip escaped quotation mark (only add one ", ignore backslash)
-        charCodes.add(await _getCharCode(proceed: true)); // add quotation mark
-        nextChar = await _getCharCode(proceed: true);
+      if (nextChar == 92 ) { // "\\"
+        nextChar = await _getCharCode(proceed: true); // skip first backslash
+        if (nextChar == 92 || nextChar == 34) { // "\\" or "\""
+          charCodes.add(nextChar);
+          nextChar = await _getCharCode(proceed: true); // skip first backslash
+        } else { // probably an error, add raw char sequence
+          charCodes.add(92); // "\\"
+        }
       }
     }
     if (autoReleaseBuffer) _releaseUsedBuffer();
