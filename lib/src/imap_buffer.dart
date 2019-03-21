@@ -101,9 +101,17 @@ class ImapBuffer {
           "Expected quote at beginning of quoted string");
     _bufferPosition++;
     List<int> charCodes = <int>[];
-    while (await _getCharCode() != 34) // "\""
-      charCodes.add(await _getCharCode(proceed: true));
-    _bufferPosition++; // move behind closing quote
+    int nextChar = await _getCharCode(proceed: true);
+    while (nextChar != 34) {
+      charCodes.add(nextChar);
+      nextChar = await _getCharCode(proceed: true);
+      // escaped quotation mark "\\\""
+      if (nextChar == 92 && await _getCharCode() == 34) {}
+        // skip escaped quotation mark (only add one ", ignore backslash)
+        charCodes.add(await _getCharCode(proceed: true)); // add quotation mark
+        nextChar = await _getCharCode(proceed: true);
+      }
+    }
     if (autoReleaseBuffer) _releaseUsedBuffer();
     return new ImapWord(ImapWordType.string, String.fromCharCodes(charCodes));
   }
