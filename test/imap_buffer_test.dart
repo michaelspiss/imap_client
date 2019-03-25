@@ -85,6 +85,23 @@ void main() {
       expect(await () async => await _buffer.readQuotedString(),
           throwsA(new TypeMatcher<InvalidFormatException>()));
     });
+    test('String may countain escaped quotation mark', () async {
+      var list = r'"A \"quotation mark\""'.codeUnits;
+      _controller.add(list);
+      expect((await _buffer.readQuotedString()).value, 'A "quotation mark"');
+    });
+    test('String may countain escaped backslash', () async {
+      var list = r'"A \\ backslash \\"'.codeUnits;
+      _controller.add(list);
+      expect((await _buffer.readQuotedString()).value, r'A \ backslash \');
+    });
+    test('Throws SyntaxErrorException if a characeter besides ", \\ is escaped',
+        () async {
+      var list = r'"A bad \format"'.codeUnits;
+      _controller.add(list);
+      expect(await () async => await _buffer.readQuotedString(),
+          throwsA(new TypeMatcher<SyntaxErrorException>()));
+    });
   });
 
   group("readLiteral tests", () {
