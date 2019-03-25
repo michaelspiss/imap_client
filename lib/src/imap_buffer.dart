@@ -114,8 +114,9 @@ class ImapBuffer {
           charCodes.add(nextChar);
           nextChar = await _getCharCode(proceed: true); // skip first backslash
         } else {
-          // probably an error, add raw char sequence
-          charCodes.add(92); // "\\"
+          // bad format, only escape backslash or quotation mark
+          throw new SyntaxErrorException(
+              "Unexpected escape sequence \\${String.fromCharCode(nextChar)}");
         }
       }
     }
