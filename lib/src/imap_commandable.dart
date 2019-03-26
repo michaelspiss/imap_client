@@ -248,7 +248,7 @@ abstract class _ImapCommandable {
         before: () => _requiresAuthenticated("LSUB"),
         untaggedHandlers: {
           "LSUB": (ImapBuffer buffer, {int number}) async =>
-          await _listUntaggedHandler(buffer, list)
+              await _listUntaggedHandler(buffer, list)
         });
     if (response != ImapTaggedResponse.ok)
       throw new ArgumentError("Reference or name cannot be listed.");
