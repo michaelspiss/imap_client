@@ -13,20 +13,20 @@ class ImapBuffer {
 
   /// Contains all chars that have special token types
   static const Map<int, ImapWordType> _specialChars = const <int, ImapWordType>{
-    10: ImapWordType.eol, // "\n"
-    43: ImapWordType.tokenPlus, // "+"
-    42: ImapWordType.tokenAsterisk, // "*"
-    40: ImapWordType.parenOpen, // "("
-    41: ImapWordType.parenClose, // ")"
-    91: ImapWordType.bracketOpen, // "["
-    93: ImapWordType.bracketClose, // "]"
+    10: ImapWordType.eol, // \n
+    43: ImapWordType.tokenPlus, // +
+    42: ImapWordType.tokenAsterisk, // *
+    40: ImapWordType.parenOpen, // (
+    41: ImapWordType.parenClose, // )
+    91: ImapWordType.bracketOpen, // [
+    93: ImapWordType.bracketClose, // ]
   };
 
   /// All characters considered whitespaces
   static const List<int> _whitespaceChars = const [
-    32, // " "
-    9, // "\t"
-    13 // "\r"
+    32, // " " (space)
+    9, // \t
+    13 // \r
   ];
 
   /// Adds data to the buffer
@@ -45,7 +45,7 @@ class ImapBuffer {
   Future<String> readLine({autoReleaseBuffer = true}) async {
     List<int> charCodes = <int>[];
     while (await _isWhitespace()) _bufferPosition++;
-    while (await _getCharCode() != 10) // "\n"
+    while (await _getCharCode() != 10) // \n
       charCodes.add(await _getCharCode(proceed: true));
     _bufferPosition++; // skip over newline character
     // trim trailing whitespaces
@@ -59,7 +59,7 @@ class ImapBuffer {
 
   /// Skips all characters in this line
   Future<void> skipLine({autoReleaseBuffer = true}) async {
-    while (await _getCharCode(proceed: true) != 10); // "skip until behind \n"
+    while (await _getCharCode(proceed: true) != 10); // skip until behind \n
     if (autoReleaseBuffer) _releaseUsedBuffer();
     return;
   }
@@ -76,11 +76,11 @@ class ImapBuffer {
     if (_specialChars.containsKey(charAtPosition))
       word = ImapWord(_specialChars[charAtPosition],
           String.fromCharCode(await _getCharCode(proceed: true)));
-    else if (charAtPosition == 34) // "\""
+    else if (charAtPosition == 34) // "
       word = await readQuotedString(autoReleaseBuffer: false);
-    else if (charAtPosition == 123) // "{"
+    else if (charAtPosition == 123) // {
       word = await readLiteral(autoReleaseBuffer: false);
-    else if (charAtPosition == 92) // "\\"
+    else if (charAtPosition == 92) // \
       word = await readFlag(autoReleaseBuffer: false);
     else
       word = await readAtom(autoReleaseBuffer: false);
@@ -93,27 +93,40 @@ class ImapBuffer {
 
   /// Reads a quoted string starting at the current [_bufferPosition]
   ///
-  /// Must start with "\""
+  /// Must start with "
   Future<ImapWord> readQuotedString({autoReleaseBuffer = true}) async {
     while (await _isWhitespace()) _bufferPosition++;
-    if (await _getCharCode() != 34) // "\""
+    if (await _getCharCode() != 34) // "
       throw new InvalidFormatException(
           "Expected quote at beginning of quoted string");
     _bufferPosition++;
     List<int> charCodes = <int>[];
-    while (await _getCharCode() != 34) // "\""
-      charCodes.add(await _getCharCode(proceed: true));
-    _bufferPosition++; // move behind closing quote
+    int nextChar = await _getCharCode(proceed: true);
+    while (nextChar != 34 /* " */) {
+      charCodes.add(nextChar);
+      nextChar = await _getCharCode(proceed: true);
+      if (nextChar == 92 /* \ */) {
+        nextChar = await _getCharCode(proceed: true); // skip first backslash
+        if (nextChar == 92 /* \ */ || nextChar == 34 /* " */) {
+          charCodes.add(nextChar);
+          nextChar = await _getCharCode(proceed: true); // skip first backslash
+        } else {
+          // bad format, only escaped backslash or quotation mark are supported
+          throw new SyntaxErrorException(
+              "Unknown escape sequence \\${String.fromCharCode(nextChar)}");
+        }
+      }
+    }
     if (autoReleaseBuffer) _releaseUsedBuffer();
     return new ImapWord(ImapWordType.string, String.fromCharCodes(charCodes));
   }
 
   /// Reads a literal starting at the current [_bufferPosition]
   ///
-  /// Must start with "{"
+  /// Must start with {
   Future<ImapWord> readLiteral({autoReleaseBuffer = true}) async {
     while (await _isWhitespace()) _bufferPosition++;
-    if (await _getCharCode() != 123) // "{"
+    if (await _getCharCode() != 123) // {
       throw new InvalidFormatException(
           "Expected open curly bracket at beginning of literal");
     _bufferPosition++;
@@ -134,10 +147,10 @@ class ImapBuffer {
 
   /// Reads a flag starting at the current [_bufferPosition]
   ///
-  /// Must start with "\\"
+  /// Must start with \
   Future<ImapWord> readFlag({autoReleaseBuffer = true}) async {
     while (await _isWhitespace()) _bufferPosition++;
-    if (await _getCharCode() != 92) // "\\"
+    if (await _getCharCode() != 92) // \
       throw new InvalidFormatException("Expected \\ before flag name");
     _bufferPosition++;
     List<int> charCodes = <int>[92];
@@ -218,18 +231,16 @@ class ImapBuffer {
   Future<bool> _isValidAtomCharCode([int charCode = -1]) async {
     if (charCode == -1) charCode = await _getCharCode();
     if (charCode <= 31 || // CTL
-        charCode == 34 || // "\""
-        charCode == 37 || // "%"
-        charCode == 40 || // "("
-        charCode == 41 || // ")"
-        charCode == 42 || // "*"
-        charCode == 92 || // "\\"
-        charCode == 93 || // "]"
-        charCode == 123 || // "{"
-        charCode == 127) {
-      // CTL
-      return false;
-    }
+            charCode == 34 || // "
+            charCode == 37 || // %
+            charCode == 40 || // (
+            charCode == 41 || // )
+            charCode == 42 || // *
+            charCode == 92 || // \
+            charCode == 93 || // ]
+            charCode == 123 || // {
+            charCode == 127 // CTL
+        ) return false;
     return true;
   }
 

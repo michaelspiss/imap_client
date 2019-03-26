@@ -143,22 +143,8 @@ abstract class _ImapCommandable {
         "LIST \"" + referenceName + "\" \"" + folderName + "\"",
         before: () => _requiresAuthenticated("LIST"),
         untaggedHandlers: {
-          "LIST": (ImapBuffer buffer, {int number}) async {
-            await buffer.readWord(expected: ImapWordType.parenOpen);
-            ImapWord word = await buffer.readWord();
-            List<String> attributes = [];
-            while (word.type != ImapWordType.parenClose) {
-              attributes.add(word.value);
-              word = await buffer.readWord();
-            }
-            word = await buffer.readWord();
-            String hierarchyDelimiter =
-                word.type == ImapWordType.nil ? null : word.value;
-            String name = (await buffer.readWord()).value;
-            list.add(
-                new ImapListResponse(attributes, name, hierarchyDelimiter));
-            await buffer.skipLine();
-          }
+          "LIST": (ImapBuffer buffer, {int number}) async =>
+              await _listUntaggedHandler(buffer, list)
         });
     if (response != ImapTaggedResponse.ok)
       throw new ArgumentError("Reference or name cannot be listed.");
@@ -231,6 +217,60 @@ abstract class _ImapCommandable {
             "}",
         before: () => _requiresAuthenticated("APPEND"),
         onContinue: (String serverData) => message);
+  }
+
+  /// Adds [folder] to subscribed/active list
+  ///
+  /// Sends "SUBSCRIBE" command, defined in rfc 3501
+  Future<ImapTaggedResponse> subscribe(ImapFolder folder) {
+    return sendCommand("SUBSCRIBE \"" + folder.name + "\"",
+        before: () => _requiresAuthenticated("SUBSCRIBE"));
+  }
+
+  /// Removes [folder] from subscribed/active list
+  ///
+  /// Sends "UNSUBSCRIBE" command, defined in rfc 3501
+  Future<ImapTaggedResponse> unsubscribe(ImapFolder folder) {
+    return sendCommand("UNSUBSCRIBE \"" + folder.name + "\"",
+        before: () => _requiresAuthenticated("UNSUBSCRIBE"));
+  }
+
+  /// Same as [list], but limited to folders in subscribed/active list
+  ///
+  /// For information on parameters see [list], to add folders to the
+  /// subscribed/active list see [subscribe] and to remove [unsubscribe].
+  /// Sends "LSUB" command, defined in rfc 3501
+  Future<List<ImapListResponse>> lsub(String folderName,
+      {String referenceName = ""}) async {
+    List<ImapListResponse> list = [];
+    ImapTaggedResponse response = await sendCommand(
+        "LSUB \"" + referenceName + "\" \"" + folderName + "\"",
+        before: () => _requiresAuthenticated("LSUB"),
+        untaggedHandlers: {
+          "LSUB": (ImapBuffer buffer, {int number}) async =>
+              await _listUntaggedHandler(buffer, list)
+        });
+    if (response != ImapTaggedResponse.ok)
+      throw new ArgumentError("Reference or name cannot be listed.");
+    return list;
+  }
+
+  /// Adds items returned by [lsub] or [list] to [collector].
+  static void _listUntaggedHandler(
+      ImapBuffer buffer, List<ImapListResponse> collector) async {
+    await buffer.readWord(expected: ImapWordType.parenOpen);
+    ImapWord word = await buffer.readWord();
+    List<String> attributes = [];
+    while (word.type != ImapWordType.parenClose) {
+      attributes.add(word.value);
+      word = await buffer.readWord();
+    }
+    word = await buffer.readWord();
+    String hierarchyDelimiter =
+        word.type == ImapWordType.nil ? null : word.value;
+    String name = (await buffer.readWord()).value;
+    collector.add(new ImapListResponse(attributes, name, hierarchyDelimiter));
+    await buffer.skipLine();
   }
 
   /// Converts [DateTime] to imap date
