@@ -1,3 +1,9 @@
+## 0.2.1
+
+- Fix #4, bug that prevented mailboxes with spaces from being opened
+- Fix #7, bug that did not acknowledge escaped characters
+- Fix #8, add missing imap 4 rev 1 commands (subscribe, unsubscribe, lsub)
+
 ## 0.2.0
 
 - Version change, 1.0.0-alpha is lower than 0.1.3, which causes updates to fail
