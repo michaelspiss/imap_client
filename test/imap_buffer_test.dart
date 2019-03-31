@@ -95,6 +95,11 @@ void main() {
       _controller.add(list);
       expect((await _buffer.readQuotedString()).value, r'A \ backslash \');
     });
+    test('String may start with escaped character', () async {
+      var list = r'"\"A quoted text\""'.codeUnits;
+      _controller.add(list);
+      expect((await _buffer.readQuotedString()).value, '"A quoted text"');
+    });
     test('Throws SyntaxErrorException if a characeter besides ", \\ is escaped',
         () async {
       var list = r'"A bad \format"'.codeUnits;
