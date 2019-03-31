@@ -103,19 +103,16 @@ class ImapBuffer {
     List<int> charCodes = <int>[];
     int nextChar = await _getCharCode(proceed: true);
     while (nextChar != 34 /* " */) {
-      charCodes.add(nextChar);
-      nextChar = await _getCharCode(proceed: true);
       if (nextChar == 92 /* \ */) {
         nextChar = await _getCharCode(proceed: true); // skip first backslash
-        if (nextChar == 92 /* \ */ || nextChar == 34 /* " */) {
-          charCodes.add(nextChar);
-          nextChar = await _getCharCode(proceed: true); // skip first backslash
-        } else {
+        if (nextChar != 34 /* " */ && nextChar != 92 /* \ */) {
           // bad format, only escaped backslash or quotation mark are supported
           throw new SyntaxErrorException(
               "Unknown escape sequence \\${String.fromCharCode(nextChar)}");
         }
       }
+      charCodes.add(nextChar);
+      nextChar = await _getCharCode(proceed: true);
     }
     if (autoReleaseBuffer) _releaseUsedBuffer();
     return new ImapWord(ImapWordType.string, String.fromCharCodes(charCodes));
