@@ -1,3 +1,7 @@
+## 0.2.2
+
+- Merge #10, fix string with leading escaped character
+
 ## 0.2.1
 
 - Fix #4, bug that prevented mailboxes with spaces from being opened
