@@ -4,6 +4,21 @@ part of imap_client;
 abstract class _ImapCommandable {
   ImapEngine _engine;
 
+  /// Gets full server capabilities list
+  List<String> getCapabilities() {
+    return UnmodifiableListView(_engine._capabilities);
+  }
+
+  /// Checks if server has capability
+  bool hasCapability(String capability) {
+    return _engine.hasCapability(capability.toUpperCase());
+  }
+
+  /// Gets all available authentication methods
+  List<String> getAuthenticationMethods() {
+    return UnmodifiableListView(_engine._serverAuthCapabilities);
+  }
+
   /// Sends custom command. Command must not include CRLF (\r\n)!
   ///
   /// Untagged handler maps must have keys in UPPERCASE!

@@ -109,4 +109,8 @@ await client.authenticate(new ImapPlainAuth("username", "password"));
 To close the connection, `logout` can either be called in a folder or the client itself.
 
 ## Features and bugs
-Please file feature requests and bugs at the [issue tracker](https://github.com/michaelspiss/imap_client/issues).
+Feel free to contribute to this project.
+
+If you find a bug or think of a new feature, but don't know how to fix/implement it, please [open an issue](https://github.com/michaelspiss/imap_client/issues).
+
+If you fixed a bug or implemented a new feature, please send a [pull request](https://github.com/michaelspiss/imap_client/pulls).
