@@ -1,3 +1,8 @@
+## 0.2.3
+
+- Fix #13 by refreshing capabilities list after successful tls negotiation
+- Expose capabilities list and accepted auth methods
+
 ## 0.2.2
 
 - Merge #10, fix string with leading escaped character
