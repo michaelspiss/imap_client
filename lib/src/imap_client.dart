@@ -122,6 +122,8 @@ class ImapClient extends _ImapCommandable {
     });
     // Negotiate tls
     _engine._setSocket(await SecureSocket.secure(_engine._socket));
+    // refresh capabilities list
+    await capability();
     return response;
   }
 
