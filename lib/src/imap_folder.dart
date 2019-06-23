@@ -76,10 +76,11 @@ class ImapFolder extends _ImapCommandable {
     ImapCommand command = new ImapCommand(_engine, null, "");
     _engine.enqueueCommand(command);
     await _engine.executeCommand(command);
-    if (_engine._currentFolder == null)
+    if (_engine._currentFolder == null) {
       return ImapTaggedResponse.ok;
-    else
+    } else {
       return ImapTaggedResponse.bad;
+    }
   }
 
   /// Deletes all messages with the \Deleted flag.
@@ -115,9 +116,10 @@ class ImapFolder extends _ImapCommandable {
             await response.skipLine();
           }
         });
-    if (response == ImapTaggedResponse.no)
+    if (response == ImapTaggedResponse.no) {
       throw new SyntaxErrorException(
           "Search query malformed or problem with charset.");
+    }
     return results;
   }
 
@@ -163,17 +165,11 @@ class ImapFolder extends _ImapCommandable {
       Iterable<String> messageIdRanges,
       bool silent = false,
       bool uid = false}) async {
-    String silent_suffix = silent ? ".SILENT" : "";
+    String silentSuffix = silent ? ".SILENT" : "";
     String sequenceSet = _getSequenceSet(messageIds, messageIdRanges);
     String option = _flagOptionToString(flagOption);
     String uidString = uid ? "UID " : "";
-    return sendCommand(uidString +
-        "STORE " +
-        sequenceSet +
-        " " +
-        option +
-        silent_suffix +
-        " (" +
+    return sendCommand("${uidString}STORE $sequenceSet $option$silentSuffix (" +
         flags.join(" ") +
         ")");
   }
@@ -243,15 +239,16 @@ class ImapFolder extends _ImapCommandable {
       Iterable<int> messageUIds, Iterable<String> messageUIdRanges) {
     String uids = messageUIds?.join(",") ?? "";
     String uidRanges = messageUIdRanges?.join(",") ?? "";
-    if (uids.isEmpty && uidRanges.isEmpty)
+    if (uids.isEmpty && uidRanges.isEmpty) {
       throw new ArgumentError(
           "No messages selected for flags altering operation.");
-    else if (uids.isEmpty)
+    } else if (uids.isEmpty) {
       return uidRanges;
-    else if (uidRanges.isEmpty)
+    } else if (uidRanges.isEmpty) {
       return uids;
-    else
+    } else {
       return uids + "," + uidRanges;
+    }
   }
 
   /// Converts [ImapFlagsOption] enum to its string equivalent
@@ -305,8 +302,9 @@ class ImapFolder extends _ImapCommandable {
                 String.fromCharCodes(buffer._buffer.getRange(startAdr, endAdr))
                     .toUpperCase();
             result[number][dataItem] = await _readNString(buffer);
-          } else
+          } else {
             _debugLog("No handler found for fetch data item " + dataItem);
+          }
       }
       word = await buffer.readWord();
     }
@@ -366,8 +364,9 @@ class ImapFolder extends _ImapCommandable {
     } else if (word.type == ImapWordType.parenOpen) {
       buffer.unread(word.value);
       return _processBodyMultiPart(buffer);
-    } else
+    } else {
       throw new SyntaxErrorException("Could not read BODY(STRUCTURE) response");
+    }
   }
 
   static Future<Map<String, dynamic>> _processBodyOnePart(
@@ -410,11 +409,11 @@ class ImapFolder extends _ImapCommandable {
         value = word.value;
       else if (word.type == ImapWordType.atom) {
         int number = int.tryParse(word.value);
-        if (number != null)
+        if (number != null) {
           value = number;
-        else
-          throw new SyntaxErrorException(
-              "Expected number, got " + word.toString());
+        } else {
+          throw new SyntaxErrorException("Expected number, got $word");
+        }
       } else if (word.type == ImapWordType.parenOpen) {
         value = new List<String>();
         word = await buffer.readWord();
@@ -422,30 +421,34 @@ class ImapFolder extends _ImapCommandable {
           value.add(word.value);
           word = await buffer.readWord();
         }
-      } else
+      } else {
         throw new SyntaxErrorException(
-            "Expected nil, string, number or list, but got " + word.toString());
+            "Expected nil, string, number or list, but got $word");
+      }
       // add entry
       if (extCount == 0) {
         if (value is List) {
           Map<String, String> map = {};
-          if (value.length % 2 != 0)
+          if (value.length % 2 != 0) {
             throw new SyntaxErrorException(
                 "Expected key/value pairs, but got odd number of items.");
+          }
           for (int i = 0; i < value.length; i = i + 2) {
             map[value[i]] = value[i + 1];
           }
           extensions["PARAMETER"] = map;
-        } else
+        } else {
           extensions["MD5"] = value;
-      } else if (extCount == 1)
+        }
+      } else if (extCount == 1) {
         extensions["DISPOSITION"] = value;
-      else if (extCount == 2)
+      } else if (extCount == 2) {
         extensions["LANGUAGE"] = value;
-      else if (extCount == 3)
+      } else if (extCount == 3) {
         extensions["LOCATION"] = value;
-      else
+      } else {
         extensions["EXT-" + (extCount - 3).toString()] = value;
+      }
       extCount++;
       word = await buffer.readWord();
     }
@@ -461,9 +464,9 @@ class ImapFolder extends _ImapCommandable {
       results["BODIES"].add(await _processBody(buffer));
       word = await buffer.readWord();
     }
-    if (word.type != ImapWordType.string)
-      throw new SyntaxErrorException(
-          "Expected string, but got " + word.toString());
+    if (word.type != ImapWordType.string) {
+      throw new SyntaxErrorException("Expected string, but got $word");
+    }
     results["SUBTYPE"] = word.value;
     // extensions
     Map<String, dynamic> extensions = await _processExtensions(buffer, false);
@@ -527,15 +530,15 @@ class ImapFolder extends _ImapCommandable {
       word = await buffer.readWord();
       innerList.clear();
       while (word.type != ImapWordType.parenClose) {
-        if (word.type == ImapWordType.nil)
+        if (word.type == ImapWordType.nil) {
           innerList.add(null);
-        else if (word.type == ImapWordType.string)
+        } else if (word.type == ImapWordType.string) {
           innerList.add(word.value);
-        else if (word.type == ImapWordType.atom)
+        } else if (word.type == ImapWordType.atom) {
           innerList.add(word.value);
-        else
-          throw new SyntaxErrorException(
-              "Expected nil or string, got " + word.toString());
+        } else {
+          throw new SyntaxErrorException("Expected nil or string, got $word");
+        }
         word = await buffer.readWord();
       }
       outerList.add(innerList);
@@ -550,7 +553,6 @@ class ImapFolder extends _ImapCommandable {
     if (word.type == ImapWordType.string) return word.value;
     if (word.type == ImapWordType.atom) return word.value;
     if (word.type == ImapWordType.nil) return null;
-    throw new SyntaxErrorException(
-        "Expected string or nil, but got " + word.toString());
+    throw new SyntaxErrorException("Expected string or nil, but got $word");
   }
 }

@@ -26,14 +26,16 @@ abstract class _ImapCommandable {
       {String Function(String) onContinue,
       Map<String, UntaggedHandler> untaggedHandlers,
       void Function() before}) {
-    if (_engine == null)
+    if (_engine == null) {
       throw new StateException(
           "Trying to execute command, but engine is not connected or not set.");
+    }
     ImapFolder folder = this is ImapFolder ? this : null;
     ImapCommand imapCommand = new ImapCommand(_engine, folder, command);
     if (onContinue != null) imapCommand.setOnContinueHandler(onContinue);
-    if (untaggedHandlers != null)
+    if (untaggedHandlers != null) {
       imapCommand._untaggedHandlers = untaggedHandlers;
+    }
     imapCommand._before = before;
     _engine.enqueueCommand(imapCommand);
     return _engine.executeCommand(imapCommand);
@@ -122,8 +124,9 @@ abstract class _ImapCommandable {
   /// Sends "SELECT" or "EXAMINE" commands, defined in rfc 3501
   Future<ImapFolder> getFolder(String folderName,
       {bool readOnly = false, bool dontOpen = false}) async {
-    if (!_engine._folderCache.containsKey(folderName))
+    if (!_engine._folderCache.containsKey(folderName)) {
       _engine._folderCache[folderName] = new ImapFolder(_engine, folderName);
+    }
     ImapFolder folder = _engine._folderCache[folderName];
     if (dontOpen) return folder;
     if (readOnly) folder._isReadWrite = false;
@@ -161,8 +164,9 @@ abstract class _ImapCommandable {
           "LIST": (ImapBuffer buffer, {int number}) async =>
               await _listUntaggedHandler(buffer, list)
         });
-    if (response != ImapTaggedResponse.ok)
+    if (response != ImapTaggedResponse.ok) {
       throw new ArgumentError("Reference or name cannot be listed.");
+    }
     return list;
   }
 
@@ -265,8 +269,9 @@ abstract class _ImapCommandable {
           "LSUB": (ImapBuffer buffer, {int number}) async =>
               await _listUntaggedHandler(buffer, list)
         });
-    if (response != ImapTaggedResponse.ok)
+    if (response != ImapTaggedResponse.ok) {
       throw new ArgumentError("Reference or name cannot be listed.");
+    }
     return list;
   }
 
@@ -340,8 +345,9 @@ abstract class _ImapCommandable {
 
   /// Makes sure the client is authenticated, throws [StateException] otherwise
   void _requiresAuthenticated(String command) {
-    if (!_engine.isAuthenticated)
+    if (!_engine.isAuthenticated) {
       throw new StateException(
           "Trying to use \"" + command + "\" in unauthenticated state.");
+    }
   }
 }
