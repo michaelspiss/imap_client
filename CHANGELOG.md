@@ -1,3 +1,8 @@
+## 0.2.4
+
+- Fix #14 by using `utf8.decode` instead of standard `String.fromCharCodes`
+- Code cleanup: Follow latest best practices
+
 ## 0.2.3
 
 - Fix #13 by refreshing capabilities list after successful tls negotiation
