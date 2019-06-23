@@ -54,7 +54,7 @@ class ImapBuffer {
       while (await _isWhitespace(reversed.first)) charCodes.removeLast();
     }
     if (autoReleaseBuffer) _releaseUsedBuffer();
-    return String.fromCharCodes(charCodes);
+    return utf8.decode(charCodes);
   }
 
   /// Skips all characters in this line
@@ -115,7 +115,7 @@ class ImapBuffer {
       nextChar = await _getCharCode(proceed: true);
     }
     if (autoReleaseBuffer) _releaseUsedBuffer();
-    return new ImapWord(ImapWordType.string, String.fromCharCodes(charCodes));
+    return new ImapWord(ImapWordType.string, utf8.decode(charCodes));
   }
 
   /// Reads a literal starting at the current [_bufferPosition]
@@ -131,7 +131,7 @@ class ImapBuffer {
     while (await _getCharCode() >= 48 && await _getCharCode() <= 57) // 0-9
       charCodes.add(await _getCharCode(proceed: true));
     _bufferPosition++; // move behind closing curly bracket
-    int length = int.parse(String.fromCharCodes(charCodes));
+    int length = int.parse(utf8.decode(charCodes));
     await readWord(autoReleaseBuffer: false, expected: ImapWordType.eol);
     charCodes.clear();
     await _getCharCode(position: _bufferPosition + length - 1);
@@ -139,7 +139,7 @@ class ImapBuffer {
         .addAll(_buffer.getRange(_bufferPosition, _bufferPosition + length));
     _bufferPosition = _bufferPosition + length;
     if (autoReleaseBuffer) _releaseUsedBuffer();
-    return ImapWord(ImapWordType.string, String.fromCharCodes(charCodes));
+    return ImapWord(ImapWordType.string, utf8.decode(charCodes));
   }
 
   /// Reads a flag starting at the current [_bufferPosition]
@@ -154,7 +154,7 @@ class ImapBuffer {
     while (!await _isWhitespace() && await _isValidAtomCharCode())
       charCodes.add(await _getCharCode(proceed: true));
     if (autoReleaseBuffer) _releaseUsedBuffer();
-    return ImapWord(ImapWordType.flag, String.fromCharCodes(charCodes));
+    return ImapWord(ImapWordType.flag, utf8.decode(charCodes));
   }
 
   /// Reads an atom (unquoted string) starting at the current [_bufferPosition]
@@ -163,11 +163,13 @@ class ImapBuffer {
   Future<ImapWord> readAtom({autoReleaseBuffer = true}) async {
     while (await _isWhitespace()) _bufferPosition++;
     List<int> charCodes = <int>[];
-    if (!await _isValidAtomCharCode())
+    if (!await _isValidAtomCharCode()) {
       throw new InvalidFormatException("Atom starts with illegal character");
-    while (!await _isWhitespace() && await _isValidAtomCharCode())
+    }
+    while (!await _isWhitespace() && await _isValidAtomCharCode()) {
       charCodes.add(await _getCharCode(proceed: true));
-    String value = String.fromCharCodes(charCodes);
+    }
+    String value = utf8.decode(charCodes);
     if (autoReleaseBuffer) _releaseUsedBuffer();
     return value == "NIL"
         ? ImapWord(ImapWordType.nil, value)
