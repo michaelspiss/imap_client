@@ -89,8 +89,9 @@ class ImapCommand {
       else if (word.type == ImapWordType.atom && word.value[0] == 'A') {
         ImapWord status = await responses.readWord(expected: ImapWordType.atom);
         word = await responses.readWord();
-        if (word.type == ImapWordType.bracketOpen)
+        if (word.type == ImapWordType.bracketOpen) {
           await _engine.handleResponseCode();
+        }
         await responses.skipLine();
         String statusValue = status.value.toUpperCase();
         if (statusValue == 'OK') return ImapTaggedResponse.ok;

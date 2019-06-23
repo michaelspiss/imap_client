@@ -129,8 +129,9 @@ class ImapClient extends _ImapCommandable {
 
   /// Makes sure client is not authenticated, Throws [StateException] otherwise
   void _requiresNotAuthenticated(String command) {
-    if (_engine.isAuthenticated)
+    if (_engine.isAuthenticated) {
       throw new StateException(
           "Trying to use \"" + command + "\" in authenticated state.");
+    }
   }
 }

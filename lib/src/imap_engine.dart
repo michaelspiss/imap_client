@@ -88,9 +88,10 @@ class ImapEngine {
 
   /// Executes commands in the queue until it reaches [command].
   Future<ImapTaggedResponse> executeCommand(ImapCommand command) async {
-    if (_queue.isEmpty)
+    if (_queue.isEmpty) {
       throw new MissingCommandException(
           "Trying to execute, but command queue is empty.");
+    }
 
     ImapTaggedResponse response;
     do {
@@ -120,12 +121,13 @@ class ImapEngine {
     ImapFolder oldFolder = _currentFolder;
     _currentFolder = folder;
     ImapCommand select;
-    if (folder == null)
+    if (folder == null) {
       select = new ImapCommand(this, folder, "CLOSE");
-    else if (folder.isReadWrite == false)
+    } else if (folder.isReadWrite == false) {
       select = new ImapCommand(this, folder, "EXAMINE \"" + folder.name + "\"");
-    else
+    } else {
       select = new ImapCommand(this, folder, "SELECT \"" + folder.name + "\"");
+    }
     _queue.addFirst(_currentInstruction);
     _queue.addFirst(select);
     ImapTaggedResponse response = await executeCommand(select);
