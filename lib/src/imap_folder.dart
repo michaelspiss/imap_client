@@ -416,11 +416,16 @@ class ImapFolder extends _ImapCommandable {
           throw new SyntaxErrorException("Expected number, got $word");
         }
       } else if (word.type == ImapWordType.parenOpen) {
-        value = new List<String>();
-        word = await buffer.readWord();
-        while (word.type != ImapWordType.parenClose) {
-          value.add(word.value);
+        if (extCount == 1) {
+          // "DISPOSITION"
+          value = await _processDispositionSubfields(buffer);
+        } else {
+          value = new List<String>();
           word = await buffer.readWord();
+          while (word.type != ImapWordType.parenClose) {
+            value.add(word.value);
+            word = await buffer.readWord();
+          }
         }
       } else {
         throw new SyntaxErrorException(
@@ -502,6 +507,36 @@ class ImapFolder extends _ImapCommandable {
       "ENCODING": bodyFieldEnc,
       "SIZE": bodyFieldOctets
     };
+  }
+
+  static Future<Map<String, dynamic>> _processDispositionSubfields(
+      ImapBuffer buffer) async {
+    Map<String, dynamic> subfieldMap = new Map();
+
+    // expects prenOpen to be consumes already
+    ImapWord word = await buffer.readWord();
+    while (word.type != ImapWordType.parenClose) {
+      if (word.type != ImapWordType.nil) {
+        assert(word.type == ImapWordType.string);
+        String key = word.value;
+        word = await buffer.readWord();
+        if (word.type != ImapWordType.nil) {
+          Map<String, String> values = new Map();
+          assert(word.type == ImapWordType.parenOpen);
+          word = await buffer.readWord();
+          while (word.type != ImapWordType.parenClose) {
+            values[word.value] =
+                (await buffer.readWord(expected: ImapWordType.string)).value;
+            word = await buffer.readWord();
+          }
+          subfieldMap.addAll({key: values});
+        }
+      }
+
+      word = await buffer.readWord();
+    }
+
+    return subfieldMap;
   }
 
   /*
