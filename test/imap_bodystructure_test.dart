@@ -18,6 +18,9 @@ void main() {
     Test cases are based on the following examples:
     
       http://sgerwk.altervista.org/imapbodystructure.html
+
+    These just check to make sure no exceptions are thrown, but could be expanded to verify expected _result
+    
   */
 
   test('single-part email', () async {
@@ -46,13 +49,6 @@ void main() {
   test('text + html with images', () async {
     var response =
         """(BODYSTRUCTURE (("TEXT" "PLAIN" ("CHARSET" "ISO-8859-1" "FORMAT" "flowed") NIL NIL "QUOTED-PRINTABLE" 2815 73 NIL NIL NIL NIL)(("TEXT" "HTML" ("CHARSET" "ISO-8859-1") NIL NIL "QUOTED-PRINTABLE" 4171 66 NIL NIL NIL NIL)("IMAGE" "JPEG" ("NAME" "image.jpg") "<3245dsf7435>" NIL "BASE64" 189906 NIL NIL NIL NIL)("IMAGE" "GIF" ("NAME" "other.gif") "<32f6324f>" NIL "BASE64" 1090 NIL NIL NIL NIL) "RELATED" ("BOUNDARY" "--=sdgqgt") NIL NIL NIL) "ALTERNATIVE" ("BOUNDARY" "--=u5sfrj") NIL NIL NIL))\n""";
-    _buffer.addAll(response.codeUnits);
-    await _folder.processFetch(_buffer, _number, _result);
-  });
-
-  test('text + html with "inline" images', () async {
-    var response =
-        """(BODYSTRUCTURE (("text" "plain" ("charset" "utf-8") NIL NIL "7bit" 160 10 NIL NIL NIL NIL)(("text" "html" ("charset" "utf-8") NIL NIL "7bit" 452 15 NIL NIL NIL NIL)("image" "png" ("name" "kmdhkbcgedflagom.png") "<part1.949092FE.5A7457AA@librem.one>" NIL "base64" 29594 NIL ("inline" ("filename" "kmdhkbcgedflagom.png")) NIL NIL) "related" ("boundary" "------------4F31590A57C94ECEEA4EE609") NIL NIL NIL) "alternative" ("boundary" "------------E4A51DD138E4E2F27347C5BC") NIL ("en-US") NIL))\n""";
     _buffer.addAll(response.codeUnits);
     await _folder.processFetch(_buffer, _number, _result);
   });
@@ -88,6 +84,22 @@ void main() {
   test('single-element lists', () async {
     var response =
         """(BODYSTRUCTURE (("TEXT" "HTML" NIL NIL NIL "7BIT" 151 0 NIL NIL NIL) "MIXED" ("BOUNDARY" "----=rfsewr") NIL NIL))\n""";
+    _buffer.addAll(response.codeUnits);
+    await _folder.processFetch(_buffer, _number, _result);
+  });
+
+  //--- other test variations
+
+  test('text + html with "inline" images', () async {
+    var response =
+        """(BODYSTRUCTURE (("text" "plain" ("charset" "utf-8") NIL NIL "7bit" 160 10 NIL NIL NIL NIL)(("text" "html" ("charset" "utf-8") NIL NIL "7bit" 452 15 NIL NIL NIL NIL)("image" "png" ("name" "kmdhkbcgedflagom.png") "<part1.949092FE.5A7457AA@librem.one>" NIL "base64" 29594 NIL ("inline" ("filename" "kmdhkbcgedflagom.png")) NIL NIL) "related" ("boundary" "------------4F31590A57C94ECEEA4EE609") NIL NIL NIL) "alternative" ("boundary" "------------E4A51DD138E4E2F27347C5BC") NIL ("en-US") NIL))\n""";
+    _buffer.addAll(response.codeUnits);
+    await _folder.processFetch(_buffer, _number, _result);
+  });
+
+  test('"inline" pgp signature', () async {
+    var response =
+        """(BODYSTRUCTURE (("application" "pgp-encrypted" NIL NIL NIL "7bit" 12 NIL NIL NIL NIL)("application" "octet-stream" ("name" "encrypted.asc") NIL NIL "7bit" 933 NIL ("inline" ("filename" "encrypted.asc")) NIL NIL) "encrypted" ("boundary" "5ceef4c9_74b0dc51_1a6" "protocol" "application/pgp-encrypted") NIL NIL NIL))\n""";
     _buffer.addAll(response.codeUnits);
     await _folder.processFetch(_buffer, _number, _result);
   });
