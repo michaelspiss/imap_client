@@ -145,7 +145,7 @@ class ImapFolder extends _ImapCommandable {
             ")",
         untaggedHandlers: {
           "FETCH": (ImapBuffer buffer, {int number}) async {
-            await _processFetch(buffer, number, result);
+            await processFetch(buffer, number, result);
           }
         });
     return result;
@@ -265,7 +265,8 @@ class ImapFolder extends _ImapCommandable {
   }
 
   /// Sorts data retrieved from a fetch response into [result]
-  void _processFetch(ImapBuffer buffer, int number, Map result) async {
+  @visibleForTesting
+  void processFetch(ImapBuffer buffer, int number, Map result) async {
     result[number] = <String, dynamic>{};
     ImapWord word = await buffer.readWord(expected: ImapWordType.parenOpen);
     word = await buffer.readWord();

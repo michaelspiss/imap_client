@@ -8,6 +8,8 @@ import 'dart:convert';
 
 import 'package:logging/logging.dart';
 
+import 'package:meta/meta.dart';
+
 part "src/buffer_awaiter.dart";
 
 part "src/imap_buffer.dart";
