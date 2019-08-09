@@ -19,10 +19,10 @@ class FakeSocket extends Fake implements Socket {
 
   @override
   void write(Object object) async {
-    if(object is String) {
-      if(object.startsWith("A2")) {
+    if (object is String) {
+      if (object.startsWith("A2")) {
         input.add("A2 OK\r\n".codeUnits);
-      } else if(object.contains("FETCH")) {
+      } else if (object.contains("FETCH")) {
         input.add("$nextResponse\r\n".codeUnits);
       }
     }
