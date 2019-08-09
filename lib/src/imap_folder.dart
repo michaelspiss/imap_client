@@ -512,7 +512,7 @@ class ImapFolder extends _ImapCommandable {
       ImapBuffer buffer) async {
     Map<String, dynamic> subfieldMap = new Map();
 
-    // expects prenOpen to be consumes already
+    // expects prenOpen to be consumed already
     ImapWord word = await buffer.readWord();
     while (word.type != ImapWordType.parenClose) {
       if (word.type != ImapWordType.nil) {
