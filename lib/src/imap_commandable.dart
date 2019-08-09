@@ -60,9 +60,9 @@ abstract class _ImapCommandable {
   /// This tells the server that this client would like to close the connection.
   /// The connection is then closed by the server.
   Future<ImapTaggedResponse> logout() async {
-    return sendCommand("LOGOUT").then((ImapTaggedResponse response) {
-      if (response == ImapTaggedResponse.ok) _engine._socket.close();
-    });
+    ImapTaggedResponse response = await sendCommand("LOGOUT");
+    await _engine._socket.close();
+    return response;
   }
 
   /// Sends "NOOP" command defined in rfc 3501
@@ -344,10 +344,10 @@ abstract class _ImapCommandable {
   }
 
   /// Makes sure the client is authenticated, throws [StateException] otherwise
-  void _requiresAuthenticated(String command) {
+  Future<void> _requiresAuthenticated(String command) async {
     if (!_engine.isAuthenticated) {
       throw new StateException(
-          "Trying to use \"" + command + "\" in unauthenticated state.");
+          'Trying to use "$command" in unauthenticated state.');
     }
   }
 }

@@ -141,6 +141,7 @@ class ImapEngine {
 
   /// Checks if server has capability, also returns false if no data is present!
   bool hasCapability(String capability) {
+    // TODO: Automatically perform CAPABILITY request if completely empty
     return _capabilities.contains(capability);
   }
 
