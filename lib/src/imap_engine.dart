@@ -131,9 +131,11 @@ class ImapEngine {
     _queue.addFirst(_currentInstruction);
     _queue.addFirst(select);
     ImapTaggedResponse response = await executeCommand(select);
-    if (response == ImapTaggedResponse.no)
+    if (response == ImapTaggedResponse.no) {
       _currentFolder = null;
-    else if (response == ImapTaggedResponse.bad) _currentFolder = oldFolder;
+    } else if (response == ImapTaggedResponse.bad) {
+      _currentFolder = oldFolder;
+    }
     return response;
   }
 

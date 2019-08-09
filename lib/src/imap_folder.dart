@@ -403,11 +403,11 @@ class ImapFolder extends _ImapCommandable {
     while (word.type != ImapWordType.parenClose) {
       var value;
       // get value
-      if (word.type == ImapWordType.nil)
+      if (word.type == ImapWordType.nil) {
         value = null;
-      else if (word.type == ImapWordType.string)
+      } else if (word.type == ImapWordType.string) {
         value = word.value;
-      else if (word.type == ImapWordType.atom) {
+      } else if (word.type == ImapWordType.atom) {
         int number = int.tryParse(word.value);
         if (number != null) {
           value = number;
