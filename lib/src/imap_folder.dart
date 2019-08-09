@@ -415,11 +415,16 @@ class ImapFolder extends _ImapCommandable {
           throw new SyntaxErrorException("Expected number, got $word");
         }
       } else if (word.type == ImapWordType.parenOpen) {
-        value = new List<String>();
-        word = await buffer.readWord();
-        while (word.type != ImapWordType.parenClose) {
-          value.add(word.value);
+        if (extCount == 1) {
+          // "DISPOSITION"
+          value = await _processDispositionSubfields(buffer);
+        } else {
+          value = new List<String>();
           word = await buffer.readWord();
+          while (word.type != ImapWordType.parenClose) {
+            value.add(word.value);
+            word = await buffer.readWord();
+          }
         }
       } else {
         throw new SyntaxErrorException(
@@ -501,6 +506,42 @@ class ImapFolder extends _ImapCommandable {
       "ENCODING": bodyFieldEnc,
       "SIZE": bodyFieldOctets
     };
+  }
+
+  static Future<Map<String, dynamic>> _processDispositionSubfields(
+      ImapBuffer buffer) async {
+    Map<String, dynamic> subfieldMap = new Map();
+
+    // expects prenOpen to be consumed already
+    ImapWord word = await buffer.readWord();
+    while (word.type != ImapWordType.parenClose) {
+      if (word.type != ImapWordType.nil) {
+        if (word.type != ImapWordType.string) {
+          throw new InvalidFormatException(
+              "Expected ), NIL or string, but got ${word.type}");
+        }
+        String key = word.value;
+        word = await buffer.readWord();
+        if (word.type != ImapWordType.nil) {
+          Map<String, String> values = new Map();
+          if (word.type != ImapWordType.parenOpen) {
+            throw new InvalidFormatException(
+                "Expected (, but got ${word.type}");
+          }
+          word = await buffer.readWord();
+          while (word.type != ImapWordType.parenClose) {
+            values[word.value] =
+                (await buffer.readWord(expected: ImapWordType.string)).value;
+            word = await buffer.readWord();
+          }
+          subfieldMap.addAll({key: values});
+        }
+      }
+
+      word = await buffer.readWord();
+    }
+
+    return subfieldMap;
   }
 
   /*
