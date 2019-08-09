@@ -516,12 +516,18 @@ class ImapFolder extends _ImapCommandable {
     ImapWord word = await buffer.readWord();
     while (word.type != ImapWordType.parenClose) {
       if (word.type != ImapWordType.nil) {
-        assert(word.type == ImapWordType.string);
+        if (word.type != ImapWordType.string) {
+          throw new InvalidFormatException(
+              "Expected ), NIL or string, but got ${word.type}");
+        }
         String key = word.value;
         word = await buffer.readWord();
         if (word.type != ImapWordType.nil) {
           Map<String, String> values = new Map();
-          assert(word.type == ImapWordType.parenOpen);
+          if (word.type != ImapWordType.parenOpen) {
+            throw new InvalidFormatException(
+                "Expected (, but got ${word.type}");
+          }
           word = await buffer.readWord();
           while (word.type != ImapWordType.parenClose) {
             values[word.value] =
