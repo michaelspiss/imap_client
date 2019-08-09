@@ -1,6 +1,6 @@
 name: imap_client
 description: An interface to get emails via the imap protocol (version 4rev1)
-version: 0.2.4
+version: 0.2.5
 homepage: https://github.com/michaelspiss/imap_client
 author: Michael Spiss <michaelspiss.dev@mailbox.org>
 documentation:
@@ -14,3 +14,4 @@ dependencies:
 
 dev_dependencies:
   test: ^1.3.0
+  mockito: ^4.1.0

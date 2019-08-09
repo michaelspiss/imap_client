@@ -1,3 +1,7 @@
+## 0.2.5
+
+- Fix bodystructure parsing errors (issues #16, #18)
+
 ## 0.2.4
 
 - Fix #14 by using `utf8.decode` instead of standard `String.fromCharCodes`
