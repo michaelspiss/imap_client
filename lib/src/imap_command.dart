@@ -39,7 +39,7 @@ class ImapCommand {
   String get responseCode => _responseCode;
 
   /// Executed before run(), awaited for if async
-  void Function() _before;
+  Future<void> Function() _before;
 
   /// Constructor for an ImapCommand.
   ///

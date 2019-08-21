@@ -79,10 +79,12 @@ class ImapBuffer {
       {autoReleaseBuffer = true, ImapWordType expected}) async {
     int charAtPosition = await skipWhitespaces();
     ImapWord word;
-    if (_specialChars.containsKey(charAtPosition))
-      word = ImapWord(_specialChars[charAtPosition],
-          String.fromCharCode(await _getCharCode(proceed: true)));
-    else if (charAtPosition == 34 /* " */) {
+    if (_specialChars.containsKey(charAtPosition)) {
+      word = ImapWord(
+        _specialChars[charAtPosition],
+        String.fromCharCode(await _getCharCode(proceed: true)),
+      );
+    } else if (charAtPosition == 34 /* " */) {
       word = await readQuotedString(autoReleaseBuffer: false);
     } else if (charAtPosition == 123 /* { */) {
       word = await readLiteral(autoReleaseBuffer: false);

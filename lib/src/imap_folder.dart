@@ -5,7 +5,10 @@ class ImapFolder extends _ImapCommandable {
   /// Folder ("mailbox") name - acts as id
   String _name;
 
-  String get name => _name;
+  String get name => _ImapCommandable._utf8ToModifiedUtf7(_name);
+
+  /// Utf-7 version of the folder's name
+  String get serverName => _ImapCommandable._utf8ToModifiedUtf7(_name);
 
   /// UIDVALIDITY attribute - uid for mailbox, defined in rfc 3501
   int _uidvalidity;
@@ -403,11 +406,11 @@ class ImapFolder extends _ImapCommandable {
     while (word.type != ImapWordType.parenClose) {
       var value;
       // get value
-      if (word.type == ImapWordType.nil)
+      if (word.type == ImapWordType.nil) {
         value = null;
-      else if (word.type == ImapWordType.string)
+      } else if (word.type == ImapWordType.string) {
         value = word.value;
-      else if (word.type == ImapWordType.atom) {
+      } else if (word.type == ImapWordType.atom) {
         int number = int.tryParse(word.value);
         if (number != null) {
           value = number;

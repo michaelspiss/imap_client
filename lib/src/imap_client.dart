@@ -52,8 +52,7 @@ class ImapClient extends _ImapCommandable {
         "LOGIN \"$username\" \"$password\"", before: () async {
       _requiresNotAuthenticated("LOGIN");
       if (_engine.hasCapability("LOGINDISABLED")) {
-        _debugLog("Using LOGIN is forbidden by server");
-        return ImapTaggedResponse.bad;
+        throw new UnsupportedException("Using LOGIN is forbidden by server");
       }
     });
     if (response == ImapTaggedResponse.ok) {
@@ -77,10 +76,8 @@ class ImapClient extends _ImapCommandable {
         await sendCommand("AUTHENTICATE " + mechanismName, before: () async {
       _requiresNotAuthenticated("AUTHENTICATE");
       if (!_engine._serverAuthCapabilities.contains(mechanismName)) {
-        _debugLog("AUTHENTICATE called with unsupported sasl mechanism \"" +
-            mechanism.name +
-            "\"");
-        return ImapTaggedResponse.bad;
+        throw new UnsupportedException(
+            'AUTHENTICATE called with unsupported sasl mechanism "${mechanism.name}"');
       }
     }, onContinue: (String response) {
       if (mechanism.isAuthenticated) {
@@ -111,13 +108,10 @@ class ImapClient extends _ImapCommandable {
       _requiresNotAuthenticated("STARTTLS");
       if (_secure) {
         _debugLog("starttls command used, but connection is already secure.");
-        return ImapTaggedResponse.bad;
+        return null;
       }
       if (!_engine.hasCapability("STARTTLS")) {
-        _debugLog(
-            "STARTTLS is not enabled. Maybe you have to do a capability " +
-                "request first.");
-        return ImapTaggedResponse.bad;
+        throw new UnsupportedException("STARTTLS is not enabled by the server");
       }
     });
     // Negotiate tls

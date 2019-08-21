@@ -124,21 +124,24 @@ class ImapEngine {
     if (folder == null) {
       select = new ImapCommand(this, folder, "CLOSE");
     } else if (folder.isReadWrite == false) {
-      select = new ImapCommand(this, folder, "EXAMINE \"" + folder.name + "\"");
+      select = new ImapCommand(this, folder, 'EXAMINE "${folder.serverName}"');
     } else {
-      select = new ImapCommand(this, folder, "SELECT \"" + folder.name + "\"");
+      select = new ImapCommand(this, folder, 'SELECT "${folder.serverName}"');
     }
     _queue.addFirst(_currentInstruction);
     _queue.addFirst(select);
     ImapTaggedResponse response = await executeCommand(select);
-    if (response == ImapTaggedResponse.no)
+    if (response == ImapTaggedResponse.no) {
       _currentFolder = null;
-    else if (response == ImapTaggedResponse.bad) _currentFolder = oldFolder;
+    } else if (response == ImapTaggedResponse.bad) {
+      _currentFolder = oldFolder;
+    }
     return response;
   }
 
   /// Checks if server has capability, also returns false if no data is present!
   bool hasCapability(String capability) {
+    // TODO: Automatically perform CAPABILITY request if completely empty
     return _capabilities.contains(capability);
   }
 
