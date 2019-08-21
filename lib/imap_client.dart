@@ -7,6 +7,7 @@ import 'dart:collection';
 import 'dart:convert';
 
 import 'package:logging/logging.dart';
+import 'package:utf7/utf7.dart';
 
 part "src/buffer_awaiter.dart";
 

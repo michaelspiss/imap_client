@@ -124,9 +124,9 @@ class ImapEngine {
     if (folder == null) {
       select = new ImapCommand(this, folder, "CLOSE");
     } else if (folder.isReadWrite == false) {
-      select = new ImapCommand(this, folder, "EXAMINE \"" + folder.name + "\"");
+      select = new ImapCommand(this, folder, 'EXAMINE "${folder.serverName}"');
     } else {
-      select = new ImapCommand(this, folder, "SELECT \"" + folder.name + "\"");
+      select = new ImapCommand(this, folder, 'SELECT "${folder.serverName}"');
     }
     _queue.addFirst(_currentInstruction);
     _queue.addFirst(select);

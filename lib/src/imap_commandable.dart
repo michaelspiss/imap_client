@@ -83,6 +83,7 @@ abstract class _ImapCommandable {
   /// server.
   /// Sends "CREATE" command, defined in rfc 3501
   Future<ImapTaggedResponse> create(String folderName) {
+    folderName = _utf8ToModifiedUtf7(folderName);
     return sendCommand("CREATE \"" + folderName + "\"",
         before: () => _requiresAuthenticated("CREATE"));
   }
@@ -93,7 +94,7 @@ abstract class _ImapCommandable {
   /// folder will no longer be selectable.
   /// Sends "DELETE" command, defined in rfc 3501
   Future<ImapTaggedResponse> delete(ImapFolder folder) {
-    return sendCommand("DELETE \"" + folder.name + "\"",
+    return sendCommand('DELETE "${folder.serverName}"',
         before: () => _requiresAuthenticated("CREATE"));
   }
 
@@ -101,11 +102,12 @@ abstract class _ImapCommandable {
   ///
   /// Sends "RENAME" command, defined in rfc 3501
   Future<ImapTaggedResponse> rename(ImapFolder folder, String newName) async {
+    newName = _utf8ToModifiedUtf7(newName);
     ImapTaggedResponse response = await sendCommand(
-        "RENAME \"" + folder.name + "\" \"" + newName + "\"",
+        'RENAME "${folder.serverName}" "$newName"',
         before: () => _requiresAuthenticated("CREATE"));
     if (response == ImapTaggedResponse.ok) {
-      _engine._folderCache.remove(folder.name);
+      _engine._folderCache.remove(folder.serverName);
       folder._name = newName;
       _engine._folderCache[newName] = folder;
     }
@@ -177,7 +179,7 @@ abstract class _ImapCommandable {
       ImapFolder folder, Iterable<ImapStatusDataItem> dataItems) async {
     return sendCommand(
         "STATUS \"" +
-            folder.name +
+            folder.serverName +
             "\" (" +
             await _statusItemsToString(dataItems) +
             ")",
@@ -227,7 +229,7 @@ abstract class _ImapCommandable {
         dateTime == null ? "" : " " + _dateTimeToString(dateTime);
     return sendCommand(
         "APPEND \"" +
-            folder.name +
+            folder.serverName +
             "\"" +
             flagsList +
             dateTimeString +
@@ -242,7 +244,7 @@ abstract class _ImapCommandable {
   ///
   /// Sends "SUBSCRIBE" command, defined in rfc 3501
   Future<ImapTaggedResponse> subscribe(ImapFolder folder) {
-    return sendCommand("SUBSCRIBE \"" + folder.name + "\"",
+    return sendCommand("SUBSCRIBE \"" + folder.serverName + "\"",
         before: () => _requiresAuthenticated("SUBSCRIBE"));
   }
 
@@ -250,7 +252,7 @@ abstract class _ImapCommandable {
   ///
   /// Sends "UNSUBSCRIBE" command, defined in rfc 3501
   Future<ImapTaggedResponse> unsubscribe(ImapFolder folder) {
-    return sendCommand("UNSUBSCRIBE \"" + folder.name + "\"",
+    return sendCommand("UNSUBSCRIBE \"" + folder.serverName + "\"",
         before: () => _requiresAuthenticated("UNSUBSCRIBE"));
   }
 
@@ -288,7 +290,7 @@ abstract class _ImapCommandable {
     word = await buffer.readWord();
     String hierarchyDelimiter =
         word.type == ImapWordType.nil ? null : word.value;
-    String name = (await buffer.readWord()).value;
+    String name = _modifiedUtf7ToUtf8((await buffer.readWord()).value);
     collector.add(new ImapListResponse(attributes, name, hierarchyDelimiter));
     await buffer.skipLine();
   }
@@ -349,5 +351,20 @@ abstract class _ImapCommandable {
       throw new StateException(
           'Trying to use "$command" in unauthenticated state.');
     }
+  }
+
+  static String _utf8ToModifiedUtf7(String input) {
+    return input
+        .replaceAll("&", "&-")
+        .replaceAllMapped(new RegExp(r"[^\x20-\x7e]+"), (Match match) {
+      return "&${Utf7.encodeModifiedBase64(match[0]).replaceAll("/", ",")}-";
+    });
+  }
+
+  static String _modifiedUtf7ToUtf8(String input) {
+    return input.replaceAllMapped(new RegExp(r"&([^-]*)-"), (Match match) {
+      if (match[1].isEmpty) return "&";
+      return Utf7.decodeModifiedBase64(match[1].replaceAll(",", "/"));
+    });
   }
 }
