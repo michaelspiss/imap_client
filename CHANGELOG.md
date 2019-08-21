@@ -1,3 +1,7 @@
+## 0.2.6
+
+- Fix #15 by translating folder names to utf-7 before sending it them to the server
+
 ## 0.2.5
 
 - Fix bodystructure parsing errors (issues #16, #18)
