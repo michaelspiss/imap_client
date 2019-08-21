@@ -1,6 +1,6 @@
 name: imap_client
 description: IMAP (version 4rev1) implementation for dart
-version: 0.2.5
+version: 0.2.6
 homepage: https://github.com/michaelspiss/imap_client
 author: Michael Spiss <michaelspiss.dev@mailbox.org>
 documentation:
