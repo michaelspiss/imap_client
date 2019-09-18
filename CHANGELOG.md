@@ -1,3 +1,8 @@
+## 0.2.7
+
+- Fix test cases for `Socket`'s new usage of `Uint8List` instead of `List<int>` 
+- Update dependencies
+
 ## 0.2.6
 
 - Fix #15 by translating folder names to utf-7 before sending it them to the server
