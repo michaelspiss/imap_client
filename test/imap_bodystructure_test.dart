@@ -1,18 +1,19 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:imap_client/imap_client.dart';
 import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
 
 class FakeSocket extends Fake implements Socket {
-  StreamController<List<int>> input;
+  StreamController<Uint8List> input;
   String nextResponse;
 
   FakeSocket(this.input);
 
   @override
-  StreamSubscription<List<int>> listen(void onData(List<int> event),
+  StreamSubscription<Uint8List> listen(void onData(Uint8List event),
       {Function onError, void onDone(), bool cancelOnError}) {
     return input.stream.listen(onData);
   }
@@ -21,16 +22,16 @@ class FakeSocket extends Fake implements Socket {
   void write(Object object) async {
     if (object is String) {
       if (object.startsWith("A2")) {
-        input.add("A2 OK\r\n".codeUnits);
+        input.add(Uint8List.fromList("A2 OK\r\n".codeUnits));
       } else if (object.contains("FETCH")) {
-        input.add("$nextResponse\r\n".codeUnits);
+        input.add(Uint8List.fromList("$nextResponse\r\n".codeUnits));
       }
     }
   }
 }
 
 void main() {
-  StreamController<List<int>> server = new StreamController.broadcast();
+  StreamController<Uint8List> server = new StreamController.broadcast();
   FakeSocket socket = new FakeSocket(server);
   ImapEngine engine;
   ImapFolder _folder;
@@ -39,7 +40,8 @@ void main() {
     server.stream.drain();
     engine = new ImapEngine(socket);
     _folder = new ImapFolder(engine, "TestFolder");
-    server.add("* OK [CAPABILITY Imap4rev1]\r\nA1 OK\r\n".codeUnits);
+    server.add(Uint8List.fromList(
+        "* OK [CAPABILITY Imap4rev1]\r\nA1 OK\r\n".codeUnits));
   });
 
   /*
