@@ -1,3 +1,7 @@
+## 0.2.8
+
+- Fix #21 - searching for UNSEEN emails is returning empty list
+
 ## 0.2.7
 
 - Fix test cases for `Socket`'s new usage of `Uint8List` instead of `List<int>` 
