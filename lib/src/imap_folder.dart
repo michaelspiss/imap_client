@@ -115,7 +115,12 @@ class ImapFolder extends _ImapCommandable {
         uid_s + "SEARCH " + charset + searchQuery,
         untaggedHandlers: {
           "SEARCH": (ImapBuffer response, {int number}) async {
-            results.add(number);
+            while (await response._isWhitespace()) {
+              try {
+                results
+                    .add(await response.readInteger(autoReleaseBuffer: false));
+              } on InvalidFormatException catch (_) {}
+            }
             await response.skipLine();
           }
         });
