@@ -1,6 +1,6 @@
 name: imap_client
 description: IMAP (version 4rev1) implementation to get emails from an external server
-version: 0.2.8
+version: 0.2.9
 homepage: https://github.com/michaelspiss/imap_client
 author: Michael Spiss <michaelspiss.dev@mailbox.org>
 

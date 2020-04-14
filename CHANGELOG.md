@@ -1,3 +1,7 @@
+## 0.2.9
+
+- Move pedantic to dev-dependencies (issue #22)
+
 ## 0.2.8
 
 - Fix #21 - searching for UNSEEN emails is returning empty list
