@@ -9,9 +9,9 @@ environment:
 
 dependencies:
   logging: ^0.11.4
-  pedantic: ^1.9.0
   utf7: ^0.2.1
 
 dev_dependencies:
   test: ^1.14.1
+  pedantic: ^1.9.0
   mockito: ^4.1.1
